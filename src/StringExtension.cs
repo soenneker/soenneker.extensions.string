@@ -23,19 +23,28 @@ public static class StringExtension
     }
 
     [Pure]
-    public static bool IsNumeric(this string value)
+    public static bool IsAlphaNumeric(this string? value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrWhiteSpace(value))
             return false;
 
-        bool result = double.TryParse(value, out double _);
-        return result;
+        return value.All(char.IsLetterOrDigit);
+    }
+
+    /// <returns>false if string is null or empty</returns>
+    [Pure]
+    public static bool IsNumeric(this string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        return value.All(char.IsDigit);
     }
 
     [Pure]
     public static double? ToDouble(this string value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrWhiteSpace(value))
             return null;
 
         bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-us"), out double result);
@@ -49,7 +58,7 @@ public static class StringExtension
     [Pure]
     public static decimal? ToDecimal(this string value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrWhiteSpace(value))
             return null;
 
         bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-us"), out decimal result);
@@ -84,20 +93,47 @@ public static class StringExtension
         return result;
     }
 
-    /// <returns>true if only digits are in the string. true if string is null. false otherwise.</returns>
     [Pure]
-    public static bool ContainsOnlyDigits(this string? str)
+    public static bool EndsWithAny(this string value, IEnumerable<string> suffixes, StringComparison comparison = StringComparison.Ordinal)
     {
-        if (str == null)
-            return true;
+        return suffixes.Any(t => value.EndsWith(t, comparison));
+    }
 
-        foreach (char c in str)
+    [Pure]
+    public static bool StartsWithAny(this string value, IEnumerable<string> prefixes, StringComparison comparison = StringComparison.Ordinal)
+    {
+        return prefixes.Any(t => value.StartsWith(t, comparison));
+    }
+
+    [Pure]
+    public static bool ContainsAny(this string value, List<string> values, StringComparison comparison = StringComparison.Ordinal)
+    {
+        return value.Where((t, i) => value.IndexOf(values[i], comparison) != -1).Any();
+    }
+
+    /// <summary>
+    /// Determine if a string contains any of the given characters
+    /// </summary>
+    [Pure]
+    public static bool ContainsAny(this string value, params char[]? characters)
+    {
+        if (string.IsNullOrEmpty(value) || characters == null || characters.Length == 0)
+            return false;
+
+        foreach (var t in value)
         {
-            if (c < '0' || c > '9')
-                return false;
+            if (Array.IndexOf(characters, t) >= 0)
+                return true;
         }
 
-        return true;
+        return false;
+    }
+
+    /// <returns>true if any are equal</returns>
+    [Pure]
+    public static bool EqualsAny(this string value, StringComparison comparison = StringComparison.Ordinal, params string[] strings)
+    {
+        return strings.Any(test => value.Equals(test, comparison));
     }
 
     /// <summary>
@@ -139,13 +175,6 @@ public static class StringExtension
     {
         string result = value.Replace('.', '-');
         return result;
-    }
-
-    /// <returns>true if any are equal</returns>
-    [Pure]
-    public static bool EqualsAny(this string value, bool ignoreCase = true, params string[] strings)
-    {
-        return ignoreCase ? strings.Any(test => value.Equals(test, StringComparison.OrdinalIgnoreCase)) : strings.Any(value.Equals);
     }
 
     [Pure]
@@ -218,10 +247,10 @@ public static class StringExtension
         return result;
     }
 
-
-    public static string Shuffle(this string str)
+    [Pure]
+    public static string Shuffle(this string value)
     {
-        char[] array = str.ToCharArray();
+        char[] array = value.ToCharArray();
         int n = array.Length;
         while (n > 1)
         {
@@ -233,9 +262,10 @@ public static class StringExtension
         return new string(array);
     }
 
-    public static string SecureShuffle(this string str)
+    [Pure]
+    public static string SecureShuffle(this string value)
     {
-        char[] array = str.ToCharArray();
+        char[] array = value.ToCharArray();
         int n = array.Length;
         while (n > 1)
         {
@@ -250,6 +280,7 @@ public static class StringExtension
     /// <summary>
     /// Shorthand for <see cref="string.IsNullOrEmpty"/>
     /// </summary>
+    [Pure]
     public static bool IsNullOrEmpty([NotNullWhen(false)] this string? str)
     {
         return string.IsNullOrEmpty(str);
