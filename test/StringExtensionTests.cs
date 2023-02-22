@@ -110,4 +110,15 @@ public class StringExtensionTests
 
         result.Should().Be(expected);
     }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(" ", " ")]
+    [InlineData("/www.google.com", "www.google.com")]
+    public void RemoveLeadingChar_should_remove_char(string? test, string expected)
+    {
+        string? result = test.RemoveLeadingChar('/');
+
+        result.Should().Be(expected);
+    }
 }

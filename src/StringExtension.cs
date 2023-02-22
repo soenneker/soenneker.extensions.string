@@ -288,7 +288,7 @@ public static class StringExtension
     }
 
     [Pure]
-    public static string? RemoveTrailingChar(this string? value, char charToRemove)
+    public static string? RemoveTrailingChar([NotNullIfNotNull(nameof(value))] this string? value, char charToRemove)
     {
         if (value.IsNullOrEmpty())
             return value;
@@ -296,6 +296,20 @@ public static class StringExtension
         if (value.EndsWith(charToRemove))
         {
             return value[..^1];
+        }
+
+        return value;
+    }
+
+    [Pure]
+    public static string? RemoveLeadingChar([NotNullIfNotNull(nameof(value))] this string? value, char charToRemove)
+    {
+        if (value.IsNullOrEmpty())
+            return value;
+
+        if (value.StartsWith(charToRemove))
+        {
+            return value.Substring(1, value.Length - 1);
         }
 
         return value;
