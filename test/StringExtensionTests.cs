@@ -87,4 +87,27 @@ public class StringExtensionTests
 
         result.Should().Be(expected);
     }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("www.google.com", "wwwgooglecom")]
+    [InlineData("https://forwardslashperiod.com/", "httpsforwardslashperiodcom")]
+    [InlineData("allows-dashes", "allows-dashes")]
+    [InlineData("Double--dash", "double-dash")]
+    [InlineData("underscore_-dash", "underscore-dash")]
+    [InlineData("double__underscore", "double_underscore")]
+    [InlineData("ending-dash-", "ending-dash")]
+    [InlineData("ending-underscore_", "ending-underscore")]
+    [InlineData("Uppercase", "uppercase")]
+    [InlineData("spaces to dashes", "spaces-to-dashes")]
+    [InlineData("&ampersand", "ampersand")]
+    [InlineData("#hash", "hash")]
+    [InlineData("\\Backslash", "backslash")]
+    [InlineData("\"Quote", "quote")]
+    public void Slugify_should_replace(string? test, string expected)
+    {
+        string? result = test.Slugify();
+
+        result.Should().Be(expected);
+    }
 }

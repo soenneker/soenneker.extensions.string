@@ -7,6 +7,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using Soenneker.Utils.Random;
+using Soenneker.Utils.RegexCollection;
 
 namespace Soenneker.Extensions.String;
 
@@ -281,9 +282,50 @@ public static class StringExtension
     /// Shorthand for <see cref="string.IsNullOrEmpty"/>
     /// </summary>
     [Pure]
-    public static bool IsNullOrEmpty([NotNullWhen(false)] this string? str)
+    public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
     {
-        return string.IsNullOrEmpty(str);
+        return string.IsNullOrEmpty(value);
+    }
+
+    [Pure]
+    public static string? RemoveTrailingChar(this string? value, char charToRemove)
+    {
+        if (value.IsNullOrEmpty())
+            return value;
+
+        if (value.EndsWith(charToRemove))
+        {
+            return value[..^1];
+        }
+
+        return value;
+    }
+
+    /// <summary>
+    /// Converts to lowercase, and then removes/replaces characters that are invalid for URIs (does not replace accents right now)
+    /// </summary>
+    [Pure]
+    public static string? Slugify(this string? value)
+    {
+        if (value.IsNullOrEmpty())
+            return value;
+
+        //First to lower case
+        value = value.ToLowerInvariant();
+
+        //Replace spaces
+        value = RegexCollection.Spaces().Replace(value, "-");
+
+        //Remove invalid chars
+        value = RegexCollection.AlphaNumericAndDashUnderscore().Replace(value, "");
+
+        //Trim dashes from end
+        value = value.Trim('-', '_');
+
+        //Replace double occurrences of - or _
+        value = RegexCollection.DoubleOccurrencesOfDashUnderscore().Replace(value, "$1");
+
+        return value;
     }
 
     /// <summary>
