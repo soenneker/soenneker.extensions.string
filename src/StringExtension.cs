@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
 
@@ -367,5 +369,19 @@ public static class StringExtension
             return (TEnum?) rtn;
 
         return null;
+    }
+
+    /// <summary>
+    /// Builds a MemoryStream from a string. There's no need to dispose of this after using.
+    /// </summary>
+    /// <remarks>Preferably you should be using Soenneker.Utils.MemoryStreamUtil!</remarks>
+    [Pure]
+    public static async ValueTask<MemoryStream> ToMemoryStream(this string str) {
+        var stream = new MemoryStream();
+        var writer = new StreamWriter(stream);
+        await writer.WriteAsync(str);
+        await writer.FlushAsync();
+        stream.Position = 0;
+        return stream;
     }
 }
