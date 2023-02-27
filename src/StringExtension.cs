@@ -13,6 +13,9 @@ using Soenneker.Utils.RegexCollection;
 
 namespace Soenneker.Extensions.String;
 
+/// <summary>
+/// Useful string operations
+/// </summary>
 public static class StringExtension
 {
     [Pure]
@@ -38,7 +41,7 @@ public static class StringExtension
     [Pure]
     public static bool IsNumeric(this string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (value.IsNullOrWhiteSpace())
             return false;
 
         return value.All(char.IsDigit);
@@ -47,7 +50,7 @@ public static class StringExtension
     [Pure]
     public static double? ToDouble(this string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (value.IsNullOrWhiteSpace())
             return null;
 
         bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-us"), out double result);
@@ -61,7 +64,7 @@ public static class StringExtension
     [Pure]
     public static decimal? ToDecimal(this string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (value.IsNullOrWhiteSpace())
             return null;
 
         bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-us"), out decimal result);
@@ -183,7 +186,7 @@ public static class StringExtension
     [Pure]
     public static string ToLowerFirstChar(this string value)
     {
-        if (string.IsNullOrEmpty(value))
+        if (value.IsNullOrEmpty())
             return value;
 
         string result = char.ToLower(value[0]) + value[1..];
@@ -199,7 +202,7 @@ public static class StringExtension
         List<string> list = value.Split(',').ToList();
         return list;
     }
-    
+
     /// <summary>
     /// Uses UTF8 encoding
     /// </summary>
@@ -233,6 +236,9 @@ public static class StringExtension
         return result;
     }
 
+    /// <summary>
+    /// Replaces "\r\n" with "\n"
+    /// </summary>
     [Pure]
     public static string ToUnixLineBreaks(this string value)
     {
@@ -287,6 +293,15 @@ public static class StringExtension
     public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
     {
         return string.IsNullOrEmpty(value);
+    }
+
+    /// <summary>
+    /// Shorthand for <see cref="string.IsNullOrWhiteSpace"/>
+    /// </summary>
+    [Pure]
+    public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value)
+    {
+        return string.IsNullOrWhiteSpace(value);
     }
 
     [Pure]
@@ -376,7 +391,8 @@ public static class StringExtension
     /// </summary>
     /// <remarks>Preferably you should be using Soenneker.Utils.MemoryStreamUtil!</remarks>
     [Pure]
-    public static async ValueTask<MemoryStream> ToMemoryStream(this string str) {
+    public static async ValueTask<MemoryStream> ToMemoryStream(this string str)
+    {
         var stream = new MemoryStream();
         var writer = new StreamWriter(stream);
         await writer.WriteAsync(str);

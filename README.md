@@ -3,7 +3,7 @@
 [![](https://img.shields.io/nuget/dt/Soenneker.Extensions.String.svg?style=for-the-badge)](https://www.nuget.org/packages/Soenneker.Extensions.String/)
 
 # Soenneker.Extensions.String
-### A small library containing useful string extensions
+### An extension library containing useful string operations
 
 ## Installation
 
@@ -19,6 +19,10 @@ string test = "522";
 test.IsNumeric(); //true
 
 test.Truncate(1); //"5"
+```
 
-...
+```csharp
+string test = "this string&is%bad#for\\urls"
+
+test.Slugify() // "this-string-is-bad-for-urls"
 ```
