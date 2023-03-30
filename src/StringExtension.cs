@@ -8,13 +8,14 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using Soenneker.Extensions.ByteArray;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
 
 namespace Soenneker.Extensions.String;
 
 /// <summary>
-/// Useful string operations
+/// A collection of useful string extension methods
 /// </summary>
 public static class StringExtension
 {
@@ -126,7 +127,7 @@ public static class StringExtension
         if (string.IsNullOrEmpty(value) || characters == null || characters.Length == 0)
             return false;
 
-        foreach (var t in value)
+        foreach (char t in value)
         {
             if (Array.IndexOf(characters, t) >= 0)
                 return true;
@@ -194,7 +195,7 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Expects no spaces!
+    /// This expects no spaces!
     /// </summary>
     [Pure]
     public static List<string> FromCommaSeparatedToList(this string value)
@@ -261,6 +262,7 @@ public static class StringExtension
     {
         char[] array = value.ToCharArray();
         int n = array.Length;
+
         while (n > 1)
         {
             n--;
@@ -276,6 +278,7 @@ public static class StringExtension
     {
         char[] array = value.ToCharArray();
         int n = array.Length;
+
         while (n > 1)
         {
             n--;
@@ -387,7 +390,7 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Builds a MemoryStream from a string. There's no need to dispose of this after using.
+    /// Builds a MemoryStream from a string.
     /// </summary>
     /// <remarks>Preferably you should be using Soenneker.Utils.MemoryStreamUtil!</remarks>
     [Pure]
@@ -399,5 +402,15 @@ public static class StringExtension
         await writer.FlushAsync();
         stream.Position = 0;
         return stream;
+    }
+
+    /// <summary>
+    /// Takes a Base64 encoded string, converts it to a byte array, and then converts it to a UTF8 string.
+    /// </summary>
+    [Pure]
+    public static string ToStringFromEncoded64(this string str)
+    {
+        string result = Convert.FromBase64String(str).ToStr();
+        return result;
     }
 }

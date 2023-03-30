@@ -3,7 +3,7 @@
 [![](https://img.shields.io/nuget/dt/Soenneker.Extensions.String.svg?style=for-the-badge)](https://www.nuget.org/packages/Soenneker.Extensions.String/)
 
 # Soenneker.Extensions.String
-### An extension library containing useful string operations
+### A collection of useful string extension methods
 
 ## Installation
 
