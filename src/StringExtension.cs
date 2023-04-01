@@ -185,13 +185,27 @@ public static class StringExtension
     }
 
     [Pure]
-    public static string ToLowerFirstChar(this string value)
+    public static string? ToLowerFirstChar(this string? value)
     {
-        if (value.IsNullOrEmpty())
+        if (value.IsNullOrWhiteSpace())
             return value;
 
-        string result = char.ToLower(value[0]) + value[1..];
-        return result;
+        if (value.Length == 1)
+            return char.ToLowerInvariant(value[0]).ToString();
+
+        return char.ToLowerInvariant(value[0]) + value[1..];
+    }
+
+    [Pure]
+    public static string? ToUpperFirstChar(this string? value)
+    {
+        if (value.IsNullOrWhiteSpace())
+            return value;
+
+        if (value.Length == 1)
+            return char.ToUpperInvariant(value[0]).ToString();
+
+        return char.ToUpperInvariant(value[0]) + value[1..];
     }
 
     /// <summary>

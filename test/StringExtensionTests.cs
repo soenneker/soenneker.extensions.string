@@ -121,4 +121,16 @@ public class StringExtensionTests
 
         result.Should().Be(expected);
     }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(" ", " ")]
+    [InlineData("blerg", "Blerg")]
+    [InlineData("a", "A")]
+    public void ToUpperFirstChar_should_capitalize_first_char(string? test, string expected)
+    {
+        string? result = test.ToUpperFirstChar();
+
+        result.Should().Be(expected);
+    }
 }
