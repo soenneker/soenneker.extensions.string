@@ -1,12 +1,13 @@
 using FluentAssertions;
+using Soenneker.Tests.Unit;
 using Xunit;
 using Xunit.Abstractions;
 
 namespace Soenneker.Extensions.String.Tests;
 
-public class StringExtensionTests
+public class StringExtensionTests : UnitTest
 {
-    public StringExtensionTests(ITestOutputHelper output)
+    public StringExtensionTests(ITestOutputHelper output) : base(output)
     {
     }
 
@@ -132,5 +133,30 @@ public class StringExtensionTests
         string? result = test.ToUpperFirstChar();
 
         result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void ToIds_with_values_should_give_result()
+    {
+        const string test = "blah:test";
+        List<string>? result = test.ToIds();
+        result!.First().Should().Be("blah");
+        result![1].Should().Be("test");
+    }
+
+    [Fact]
+    public void ToIds_with_no_separator_should_give_result()
+    {
+        const string test = "blah";
+        List<string>? result = test.ToIds();
+        result!.First().Should().Be("blah");
+    }
+
+    [Fact]
+    public void ToIds_with_null_should_be_null()
+    {
+        string? test = null;
+        List<string>? result = test.ToIds();
+        result.Should().BeNull();
     }
 }

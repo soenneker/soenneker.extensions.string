@@ -432,8 +432,11 @@ public static class StringExtension
     /// Essentially wraps string.Split(':')
     /// </summary>
     [Pure]
-    public static List<string> ToIds(this string str)
+    public static List<string>? ToIds(this string? str)
     {
+        if (str.IsNullOrEmpty())
+            return null;
+
         string[] result = str.Split(':');
 
         return result.ToList();
