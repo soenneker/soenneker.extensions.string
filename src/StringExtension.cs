@@ -427,4 +427,15 @@ public static class StringExtension
         string result = Convert.FromBase64String(str).ToStr();
         return result;
     }
+
+    /// <summary>
+    /// Essentially wraps string.Split(':')
+    /// </summary>
+    [Pure]
+    public static List<string> ToIds(this string str)
+    {
+        string[] result = str.Split(':');
+
+        return result.ToList();
+    }
 }
