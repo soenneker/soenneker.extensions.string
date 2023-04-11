@@ -441,4 +441,40 @@ public static class StringExtension
 
         return result.ToList();
     }
+
+    /// <summary>
+    /// Entity ids are the concatenation of an entity's partitionKey and documentId.
+    /// If an entity's partitionKey and documentId are the same, both return values will be equivalent to documentId. <para/>
+    /// Format: {partitionKey}:{documentId}
+    /// </summary>
+    /// <param name="id">id with 1 or 2 terms delimited by ':'.</param>
+    /// <exception cref="ArgumentNullException">id cannot be null</exception>
+    /// <returns>partition key, document id</returns>
+    [Pure]
+    public static (string PartitionKey, string DocumentId) ToSplitId(this string id)
+    {
+        if (id.IsNullOrWhiteSpace())
+            throw new ArgumentNullException(nameof(id), $"Argument '{nameof(id)}' may not be null.");
+
+        string[] idParts = id.Split(':');
+
+        return idParts.Length switch
+        {
+            1 => (idParts[0], idParts[0]),
+            2 => (idParts[0], idParts[1]),
+            _ => (string.Join(':', idParts.Take(idParts.Length - 1)), idParts.Last())
+        };
+    }
+
+    [Pure]
+    public static string AddPartitionKey(this string documentId, string partitionKey)
+    {
+        return $"{partitionKey}:{documentId}";
+    }
+
+    [Pure]
+    public static string AddDocumentId(this string partitionKey, string documentId)
+    {
+        return $"{partitionKey}:{documentId}";
+    }
 }
