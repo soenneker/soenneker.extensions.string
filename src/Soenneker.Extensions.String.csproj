@@ -41,6 +41,6 @@
 
         <PackageReference Include="Soenneker.Extensions.ByteArray" Version="1.0.3" />
         <PackageReference Include="Soenneker.Utils.Random" Version="1.0.9" />
-        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="1.0.7" />
+        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="1.0.8" />
     </ItemGroup>
 </Project>
