@@ -477,4 +477,14 @@ public static class StringExtension
     {
         return $"{partitionKey}:{documentId}";
     }
+
+    /// <returns>A 32 bit int, or if null or whitespace, 0</returns>
+    [Pure]
+    public static int ToInt(this string? str)
+    {
+        if (str.IsNullOrWhiteSpace())
+            return 0;
+
+        return int.Parse(str);
+    }
 }
