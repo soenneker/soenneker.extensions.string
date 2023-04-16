@@ -159,4 +159,15 @@ public class StringExtensionTests : UnitTest
         List<string>? result = test.ToIds();
         result.Should().BeNull();
     }
+
+    [Theory]
+    [InlineData(null, 0)]
+    [InlineData(" ", 0)]
+    [InlineData("1", 1)]
+    public void ToInt_should_produce_expected(string? test, int expected)
+    {
+        int result = test.ToInt();
+
+        result.Should().Be(expected);
+    }
 }
