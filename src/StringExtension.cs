@@ -313,6 +313,16 @@ public static class StringExtension
     }
 
     /// <summary>
+    /// Shorthand for <code>string.IsNullOrEmpty() == false</code>
+    /// </summary>
+    /// <remarks>This should be used over the IsPopulated() method on the IEnumerable extension</remarks>
+    [Pure]
+    public static bool HasContent([NotNullWhen(true)] this string? value)
+    {
+        return !value.IsNullOrEmpty();
+    }
+
+    /// <summary>
     /// Shorthand for <see cref="string.IsNullOrWhiteSpace"/>
     /// </summary>
     [Pure]
