@@ -105,6 +105,7 @@ public class StringExtensionTests : UnitTest
     [InlineData("#hash", "hash")]
     [InlineData("\\Backslash", "backslash")]
     [InlineData("\"Quote", "quote")]
+    [InlineData("`';&~", "")]
     public void Slugify_should_replace(string? test, string expected)
     {
         string? result = test.Slugify();
