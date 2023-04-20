@@ -456,7 +456,8 @@ public static class StringExtension
     /// <summary>
     /// Entity ids are the concatenation of an entity's partitionKey and documentId.
     /// If an entity's partitionKey and documentId are the same, both return values will be equivalent to documentId. <para/>
-    /// Format: {partitionKey}:{documentId}
+    /// Format: {partitionKey}:{documentId} <para/>
+    /// This also supports 'combined ids'. For example, a partition key could be guid1:guid2, and the document id is guid3. It would return guid1:guid2:guid3.
     /// </summary>
     /// <param name="id">id with 1 or 2 terms delimited by ':'.</param>
     /// <exception cref="ArgumentNullException">id cannot be null</exception>
@@ -464,15 +465,20 @@ public static class StringExtension
     [Pure]
     public static (string PartitionKey, string DocumentId) ToSplitId(this string id)
     {
-        if (id.IsNullOrWhiteSpace())
-            throw new ArgumentNullException(nameof(id), $"Argument '{nameof(id)}' may not be null.");
+        if (id.IsNullOrEmpty())
+            throw new ArgumentNullException(nameof(id), $"Argument '{nameof(id)}' may not be null or empty");
+
+        if (!id.Contains(':'))
+            return (id, id);
 
         string[] idParts = id.Split(':');
 
         return idParts.Length switch
         {
+            // Strange scenario; this looks like 'guid:'
             1 => (idParts[0], idParts[0]),
             2 => (idParts[0], idParts[1]),
+            // These are for combined ids.. the document id is the last in the string and everything before that is the partition key
             _ => (string.Join(':', idParts, 0, idParts.Length - 1), idParts[^1])
         };
     }
