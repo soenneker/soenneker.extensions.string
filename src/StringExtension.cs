@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Soenneker.Extensions.ByteArray;
+using Soenneker.Extensions.Stream;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
 
@@ -424,7 +425,7 @@ public static class StringExtension
         var writer = new StreamWriter(stream);
         await writer.WriteAsync(str);
         await writer.FlushAsync();
-        stream.Position = 0;
+        stream.ToStart();
         return stream;
     }
 
@@ -472,7 +473,7 @@ public static class StringExtension
         {
             1 => (idParts[0], idParts[0]),
             2 => (idParts[0], idParts[1]),
-            _ => (string.Join(':', idParts.Take(idParts.Length - 1)), idParts.Last())
+            _ => (string.Join(':', idParts, 0, idParts.Length - 1), idParts[^1])
         };
     }
 
