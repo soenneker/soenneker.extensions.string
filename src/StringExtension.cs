@@ -440,8 +440,9 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Essentially wraps string.Split(':')
+    /// Essentially wraps string.Split(':').
     /// </summary>
+    /// <remarks>Don't use this for splitting into document/partition keys, use <see cref="ToSplitId"/> instead.</remarks>
     [Pure]
     public static List<string>? ToIds(this string? str)
     {

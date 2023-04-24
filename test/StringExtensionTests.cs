@@ -1,16 +1,10 @@
 using FluentAssertions;
-using Soenneker.Tests.Unit;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Soenneker.Extensions.String.Tests;
 
-public class StringExtensionTests : UnitTest
+public class StringExtensionTests
 {
-    public StringExtensionTests(ITestOutputHelper output) : base(output)
-    {
-    }
-
     [Fact]
     public void String_date_should_parse()
     {
