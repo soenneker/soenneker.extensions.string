@@ -505,4 +505,56 @@ public static class StringExtension
 
         return int.Parse(str);
     }
+
+    /// <summary>
+    /// Does not check for empty GUID, <see cref="IsValidPopulatedGuid"/> for this.
+    /// </summary>
+    [Pure]
+    public static bool IsValidGuid(this string? input)
+    {
+        return input != null && Guid.TryParse(input, out _);
+    }
+
+    /// <summary>
+    /// Makes sure result is not a empty GUID.
+    /// </summary>
+    [Pure]
+    public static bool IsValidPopulatedGuid(this string? input)
+    {
+        if (input == null)
+            return false;
+
+        bool success = Guid.TryParse(input, out Guid result);
+
+        if (success && result != Guid.Empty)
+            return true;
+
+        return false;
+    }
+
+    /// <summary>
+    /// Does not check for empty GUID, <see cref="IsValidPopulatedNullableGuid"/> for this.
+    /// </summary>
+    [Pure]
+    public static bool IsValidNullableGuid(this string? input)
+    {
+        return input == null || Guid.TryParse(input, out _);
+    }
+
+    /// <summary>
+    /// Makes sure result is not a empty GUID.
+    /// </summary>
+    [Pure]
+    public static bool IsValidPopulatedNullableGuid(this string? input)
+    {
+        if (input == null)
+            return true;
+
+        bool success = Guid.TryParse(input, out Guid result);
+
+        if (success && result != Guid.Empty)
+            return true;
+
+        return false;
+    }
 }
