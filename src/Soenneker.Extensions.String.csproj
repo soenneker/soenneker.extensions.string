@@ -39,10 +39,10 @@
 
         
 
-        <PackageReference Include="Soenneker.Extensions.ByteArray" Version="2.1.3" />
+        <PackageReference Include="Soenneker.Extensions.ByteArray" Version="2.1.4" />
 
-        <PackageReference Include="Soenneker.Extensions.Stream" Version="2.1.4" />
-        <PackageReference Include="Soenneker.Utils.Random" Version="2.1.4" />
-        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="2.1.4" />
+        <PackageReference Include="Soenneker.Extensions.Stream" Version="2.1.5" />
+        <PackageReference Include="Soenneker.Utils.Random" Version="2.1.5" />
+        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="2.1.5" />
     </ItemGroup>
 </Project>
