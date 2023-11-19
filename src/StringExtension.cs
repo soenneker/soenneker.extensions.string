@@ -557,4 +557,13 @@ public static class StringExtension
 
         return false;
     }
+
+    /// <exception cref="ArgumentException"></exception>
+    public static void ThrowIfNullOrEmpty(this string? input, string name)
+    {
+        bool result = IsNullOrEmpty(input);
+
+        if (result)
+            throw new ArgumentException("String cannot be null or empty", name);
+    }
 }
