@@ -183,6 +183,6 @@ public class StringExtensionTests
         const string input = "ThisIsALongString";
         string result = input.Mask();
 
-        result.Should().Be("***********ing");
+        result.Should().Be("**************ing");
     }
 }
