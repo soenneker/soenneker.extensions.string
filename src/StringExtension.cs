@@ -5,6 +5,7 @@ using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -559,7 +560,7 @@ public static class StringExtension
     }
 
     /// <exception cref="ArgumentException"></exception>
-    public static void ThrowIfNullOrEmpty(this string? input, string name)
+    public static void ThrowIfNullOrEmpty(this string? input, [CallerMemberName] string? name = null)
     {
         bool result = IsNullOrEmpty(input);
 
