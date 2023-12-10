@@ -423,8 +423,8 @@ public static class StringExtension
     {
         var stream = new MemoryStream();
         var writer = new StreamWriter(stream);
-        await writer.WriteAsync(str);
-        await writer.FlushAsync();
+        await writer.WriteAsync(str).ConfigureAwait(false);
+        await writer.FlushAsync().ConfigureAwait(false);
         stream.ToStart();
         return stream;
     }

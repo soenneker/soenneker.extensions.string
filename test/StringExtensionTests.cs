@@ -78,7 +78,7 @@ public class StringExtensionTests
     [InlineData(null, null)]
     [InlineData("Test with space", "Test%20with%20space")]
     [InlineData("Testwith:", "Testwith%3A")]
-    public void ToEscaped_should_escape(string? test, string expected)
+    public void ToEscaped_should_escape(string? test, string? expected)
     {
         string? result = test.ToEscaped();
 
@@ -102,7 +102,7 @@ public class StringExtensionTests
     [InlineData("\\Backslash", "backslash")]
     [InlineData("\"Quote", "quote")]
     [InlineData("`';&~", "")]
-    public void Slugify_should_replace(string? test, string expected)
+    public void Slugify_should_replace(string? test, string? expected)
     {
         string? result = test.Slugify();
 
@@ -113,7 +113,7 @@ public class StringExtensionTests
     [InlineData(null, null)]
     [InlineData(" ", " ")]
     [InlineData("/www.google.com", "www.google.com")]
-    public void RemoveLeadingChar_should_remove_char(string? test, string expected)
+    public void RemoveLeadingChar_should_remove_char(string? test, string? expected)
     {
         string? result = test.RemoveLeadingChar('/');
 
@@ -125,7 +125,7 @@ public class StringExtensionTests
     [InlineData(" ", " ")]
     [InlineData("blerg", "Blerg")]
     [InlineData("a", "A")]
-    public void ToUpperFirstChar_should_capitalize_first_char(string? test, string expected)
+    public void ToUpperFirstChar_should_capitalize_first_char(string? test, string? expected)
     {
         string? result = test.ToUpperFirstChar();
 
