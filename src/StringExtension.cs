@@ -21,6 +21,12 @@ namespace Soenneker.Extensions.String;
 /// </summary>
 public static class StringExtension
 {
+    /// <summary>
+    /// Truncates a string to the specified length.
+    /// </summary>
+    /// <param name="value">The string to truncate.</param>
+    /// <param name="length">The maximum length of the truncated string.</param>
+    /// <returns>The truncated string.</returns>
     [Pure]
     public static string Truncate(this string value, int length)
     {
@@ -31,6 +37,11 @@ public static class StringExtension
         return result;
     }
 
+    /// <summary>
+    /// Determines whether a string contains only alphanumeric characters.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <returns>True if the string is alphanumeric, otherwise false.</returns>
     [Pure]
     public static bool IsAlphaNumeric(this string? value)
     {
@@ -40,7 +51,11 @@ public static class StringExtension
         return value.All(char.IsLetterOrDigit);
     }
 
-    /// <returns>false if string is null or empty</returns>
+    /// <summary>
+    /// Determines whether a string contains only numeric characters.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <returns>True if the string is numeric, otherwise false.</returns>
     [Pure]
     public static bool IsNumeric(this string? value)
     {
@@ -141,6 +156,13 @@ public static class StringExtension
     /// <returns>true if any are equal</returns>
     [Pure]
     public static bool EqualsAny(this string value, StringComparison comparison = StringComparison.Ordinal, params string[] strings)
+    {
+        return strings.Any(test => value.Equals(test, comparison));
+    }
+
+    /// <returns>true if any are equal</returns>
+    [Pure]
+    public static bool EqualsAny(this string value, IEnumerable<string> strings, StringComparison comparison = StringComparison.Ordinal)
     {
         return strings.Any(test => value.Equals(test, comparison));
     }
@@ -289,6 +311,11 @@ public static class StringExtension
         return new string(array);
     }
 
+    /// <summary>
+    /// Securely shuffles the characters in the specified string.
+    /// </summary>
+    /// <param name="value">The string to shuffle.</param>
+    /// <returns>A new string with the characters shuffled.</returns>
     [Pure]
     public static string SecureShuffle(this string value)
     {
@@ -333,6 +360,12 @@ public static class StringExtension
         return string.IsNullOrWhiteSpace(value);
     }
 
+    /// <summary>
+    /// Removes the trailing character from the specified string, if it exists.
+    /// </summary>
+    /// <param name="value">The string to remove the trailing character from.</param>
+    /// <param name="charToRemove">The character to remove from the end of the string.</param>
+    /// <returns>The string with the trailing character removed, or the original string if it is null or empty.</returns>
     [Pure]
     public static string? RemoveTrailingChar([NotNullIfNotNull(nameof(value))] this string? value, char charToRemove)
     {
@@ -340,13 +373,17 @@ public static class StringExtension
             return value;
 
         if (value.EndsWith(charToRemove))
-        {
             return value[..^1];
-        }
 
         return value;
     }
 
+    /// <summary>
+    /// Removes the leading character from the specified string, if it exists.
+    /// </summary>
+    /// <param name="value">The string to remove the leading character from.</param>
+    /// <param name="charToRemove">The character to remove from the beginning of the string.</param>
+    /// <returns>The string with the leading character removed, or the original string if it is null or empty.</returns>
     [Pure]
     public static string? RemoveLeadingChar([NotNullIfNotNull(nameof(value))] this string? value, char charToRemove)
     {
@@ -354,9 +391,7 @@ public static class StringExtension
             return value;
 
         if (value.StartsWith(charToRemove))
-        {
             return value.Substring(1, value.Length - 1);
-        }
 
         return value;
     }
@@ -559,7 +594,12 @@ public static class StringExtension
         return false;
     }
 
-    /// <exception cref="ArgumentException"></exception>
+    /// <summary>
+    /// Throws an <see cref="ArgumentException"/> if the input string is null or empty.
+    /// </summary>
+    /// <param name="input">The input string.</param>
+    /// <param name="name">The name of the calling member.</param>
+    /// <exception cref="ArgumentException">Thrown when the input string is null or empty.</exception>
     public static void ThrowIfNullOrEmpty(this string? input, [CallerMemberName] string? name = null)
     {
         bool result = IsNullOrEmpty(input);
@@ -574,6 +614,7 @@ public static class StringExtension
     /// </summary>
     /// <param name="input">The input string to mask.</param>
     /// <returns>The masked string with sensitive information replaced by asterisks.</returns>
+    [Pure]
     public static string Mask(this string input)
     {
         if (input.IsNullOrEmpty())
