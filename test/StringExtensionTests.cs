@@ -167,4 +167,22 @@ public class StringExtensionTests
 
         result.Should().Be(expected);
     }
+
+    [Fact]
+    public void Mask_ShortString_ReturnsAsterisks()
+    {
+        const string input = "Short";
+        string result = input.Mask();
+
+        result.Should().Be("*****");
+    }
+
+    [Fact]
+    public void Mask_LongString_ReturnsMaskedString()
+    {
+        const string input = "ThisIsALongString";
+        string result = input.Mask();
+
+        result.Should().Be("***********ing");
+    }
 }

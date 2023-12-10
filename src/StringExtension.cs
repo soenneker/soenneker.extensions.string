@@ -566,4 +566,24 @@ public static class StringExtension
         if (result)
             throw new ArgumentException("String cannot be null or empty", name);
     }
+
+
+    /// <summary>
+    /// Masks sensitive information in a string by replacing a portion of characters with asterisks.
+    /// </summary>
+    /// <param name="input">The input string to mask.</param>
+    /// <returns>The masked string with sensitive information replaced by asterisks.</returns>
+    public static string Mask(this string input)
+    {
+        if (input.IsNullOrEmpty())
+            return "";
+
+        if (input.Length <= 6)
+            return new string('*', input.Length);
+
+        int maskLength = Math.Max(0, input.Length - 3);
+        var maskedPart = new string('*', maskLength);
+        string visiblePart = input[maskLength..];
+        return maskedPart + visiblePart;
+    }
 }
