@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using Soenneker.Extensions.ByteArray;
 using Soenneker.Extensions.Stream;
 using Soenneker.Utils.Random;
@@ -468,10 +469,19 @@ public static class StringExtension
     /// <summary>
     /// Takes a Base64 encoded string, converts it to a byte array, and then converts it to a UTF8 string.
     /// </summary>
+    /// <remarks>Equivalent to <code>Convert.FromBase64String(str).ToStr()</code></remarks>
     [Pure]
     public static string ToStringFromEncoded64(this string str)
     {
         string result = Convert.FromBase64String(str).ToStr();
+        return result;
+    }
+
+    /// <remarks>Equivalent to <code>HttpUtility.UrlEncode(str)</code></remarks>
+    [Pure]
+    public static string ToUrlEncoded(this string str)
+    {
+        string result = HttpUtility.UrlEncode(str);
         return result;
     }
 
@@ -552,7 +562,7 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Makes sure result is not a empty GUID.
+    /// Makes sure result is not an empty GUID.
     /// </summary>
     [Pure]
     public static bool IsValidPopulatedGuid(this string? input)
@@ -578,7 +588,7 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Makes sure result is not a empty GUID.
+    /// Makes sure result is not an empty GUID.
     /// </summary>
     [Pure]
     public static bool IsValidPopulatedNullableGuid(this string? input)
@@ -625,7 +635,7 @@ public static class StringExtension
 
         int maskLength = Math.Max(0, input.Length - 3);
         var maskedPart = new string('*', maskLength);
-        string visiblePart = input[maskLength..];
+        string visiblePart = input.Substring(maskLength, Math.Min(13, input.Length - maskLength));
         return maskedPart + visiblePart;
     }
 }
