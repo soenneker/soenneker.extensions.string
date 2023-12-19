@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web;
 using Soenneker.Extensions.ByteArray;
 using Soenneker.Extensions.Stream;
 using Soenneker.Utils.Random;
@@ -254,7 +253,10 @@ public static class StringExtension
         return result;
     }
 
-    /// <summary> Utilizes <see cref="Uri.EscapeDataString"/></summary>
+    /// <summary>
+    /// Use whenever a URL needs to be encoded etc.
+    /// Utilizes <see cref="Uri.EscapeDataString"/>
+    /// </summary>
     /// <remarks>https://stackoverflow.com/questions/602642/server-urlencode-vs-httputility-urlencode/1148326#1148326</remarks>
     [Pure]
     public static string? ToEscaped(this string? value)
@@ -270,8 +272,11 @@ public static class StringExtension
     /// Utilizes <see cref="Uri.UnescapeDataString"/>
     /// </summary>
     [Pure]
-    public static string ToUnescaped(this string value)
+    public static string? ToUnescaped(this string? value)
     {
+        if (value == null)
+            return null;
+
         string result = Uri.UnescapeDataString(value);
         return result;
     }
@@ -474,14 +479,6 @@ public static class StringExtension
     public static string ToStringFromEncoded64(this string str)
     {
         string result = Convert.FromBase64String(str).ToStr();
-        return result;
-    }
-
-    /// <remarks>Equivalent to <code>HttpUtility.UrlEncode(str)</code></remarks>
-    [Pure]
-    public static string ToUrlEncoded(this string str)
-    {
-        string result = HttpUtility.UrlEncode(str);
         return result;
     }
 
