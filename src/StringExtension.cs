@@ -620,7 +620,7 @@ public static class StringExtension
     /// </summary>
     /// <param name="input">The input string.</param>
     /// <param name="name">The name of the calling member.</param>
-    /// <exception cref="ArgumentException">Thrown when the input string is null or empty.</exception>
+    /// <exception cref="ArgumentException">Thrown when the input string is null or whitespace.</exception>
     public static void ThrowIfNullOrWhitespace(this string? input, [CallerMemberName] string? name = null)
     {
         bool result = IsNullOrWhiteSpace(input);
