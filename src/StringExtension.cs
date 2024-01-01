@@ -615,6 +615,19 @@ public static class StringExtension
             throw new ArgumentException("String cannot be null or empty", name);
     }
 
+    /// <summary>
+    /// Throws an <see cref="ArgumentException"/> if the input string is null or whitespace.
+    /// </summary>
+    /// <param name="input">The input string.</param>
+    /// <param name="name">The name of the calling member.</param>
+    /// <exception cref="ArgumentException">Thrown when the input string is null or empty.</exception>
+    public static void ThrowIfNullOrWhitespace(this string? input, [CallerMemberName] string? name = null)
+    {
+        bool result = IsNullOrWhiteSpace(input);
+
+        if (result)
+            throw new ArgumentException("String cannot be null or whitespace", name);
+    }
 
     /// <summary>
     /// Masks sensitive information in a string by replacing a portion of characters with asterisks.
