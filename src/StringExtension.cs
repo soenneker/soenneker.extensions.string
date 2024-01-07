@@ -209,7 +209,7 @@ public static class StringExtension
     }
 
     [Pure]
-    public static string? ToLowerFirstChar(this string? value)
+    public static string? ToLowerFirstChar([NotNullIfNotNull(nameof(value))] this string? value)
     {
         if (value.IsNullOrWhiteSpace())
             return value;
@@ -221,7 +221,7 @@ public static class StringExtension
     }
 
     [Pure]
-    public static string? ToUpperFirstChar(this string? value)
+    public static string? ToUpperFirstChar([NotNullIfNotNull(nameof(value))] this string? value)
     {
         if (value.IsNullOrWhiteSpace())
             return value;
