@@ -120,6 +120,19 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(" ", " ")]
+    [InlineData("arst", "arst")]
+    [InlineData("/www.google.com", "/www.google.co")]
+    public void RemoveTrailingChar_should_remove_char(string? test, string? expected)
+    {
+        string? result = test.RemoveTrailingChar('m');
+
+        result.Should().Be(expected);
+    }
+
     [Theory]
     [InlineData(null, null)]
     [InlineData(" ", " ")]

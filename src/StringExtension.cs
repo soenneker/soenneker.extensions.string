@@ -375,11 +375,11 @@ public static class StringExtension
     [Pure]
     public static string? RemoveTrailingChar([NotNullIfNotNull(nameof(value))] this string? value, char charToRemove)
     {
-        if (value.IsNullOrEmpty())
-            return value;
-
-        if (value.EndsWith(charToRemove))
-            return value[..^1];
+        if (value != null && value.Length > 0 && value[value.Length - 1] == charToRemove)
+        {
+            var span = value.AsSpan();
+            return span.Slice(0, span.Length - 1).ToString();
+        }
 
         return value;
     }
@@ -393,11 +393,11 @@ public static class StringExtension
     [Pure]
     public static string? RemoveLeadingChar([NotNullIfNotNull(nameof(value))] this string? value, char charToRemove)
     {
-        if (value.IsNullOrEmpty())
-            return value;
-
-        if (value.StartsWith(charToRemove))
-            return value.Substring(1, value.Length - 1);
+        if (value != null && value.Length > 0 && value[0] == charToRemove)
+        {
+            var span = value.AsSpan();
+            return span.Slice(1).ToString();
+        }
 
         return value;
     }
