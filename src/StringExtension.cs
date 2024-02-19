@@ -33,7 +33,7 @@ public static class StringExtension
         if (value.Length <= length)
             return value;
 
-        string result = value.AsSpan(0, length).ToString();
+        var result = value.AsSpan(0, length).ToString();
         return result;
     }
 
@@ -48,7 +48,7 @@ public static class StringExtension
         if (value.IsNullOrWhiteSpace())
             return false;
 
-        for (int i = 0; i < value.Length; i++)
+        for (var i = 0; i < value.Length; i++)
         {
             char c = value[i];
 
@@ -73,13 +73,18 @@ public static class StringExtension
         return value.All(char.IsDigit);
     }
 
+    /// <summary>
+    /// Converts the string representation of a number to its nullable double-precision floating-point equivalent.
+    /// </summary>
+    /// <param name="value">The string to convert.</param>
+    /// <returns>A <see cref="Nullable{Double}"/> that represents the converted nullable double-precision floating-point number if the conversion succeeds; otherwise, <c>null</c>.</returns>
     [Pure]
     public static double? ToDouble(this string value)
     {
         if (value.IsNullOrWhiteSpace())
             return null;
 
-        bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-us"), out double result);
+        bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-US"), out double result);
 
         if (successful)
             return result;
@@ -87,13 +92,18 @@ public static class StringExtension
         return null;
     }
 
+    /// <summary>
+    /// Converts the string representation of a number to its nullable decimal equivalent.
+    /// </summary>
+    /// <param name="value">The string to convert.</param>
+    /// <returns>A <see cref="Nullable{Decimal}"/> that represents the converted nullable decimal number if the conversion succeeds; otherwise, <c>null</c>.</returns>
     [Pure]
     public static decimal? ToDecimal(this string value)
     {
         if (value.IsNullOrWhiteSpace())
             return null;
 
-        bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-us"), out decimal result);
+        bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-US"), out decimal result);
 
         if (successful)
             return result;
@@ -101,6 +111,11 @@ public static class StringExtension
         return null;
     }
 
+    /// <summary>
+    /// Removes all non-digit characters from the string.
+    /// </summary>
+    /// <param name="value">The input string.</param>
+    /// <returns>A new string that contains only the digit characters from the original string.</returns>
     [Pure]
     public static string RemoveNonDigits(this string? value)
     {
@@ -108,20 +123,24 @@ public static class StringExtension
             return "";
 
         Span<char> result = new char[value.Length];
+        var index = 0;
 
-        int index = 0;
         foreach (char c in value)
         {
             if (char.IsDigit(c))
             {
-                result[index] = c;
-                index++;
+                result[index++] = c;
             }
         }
 
         return new string(result.Slice(0, index));
     }
 
+    /// <summary>
+    /// Removes all white-space characters from the string.
+    /// </summary>
+    /// <param name="value">The input string.</param>
+    /// <returns>A new string that contains only the non-white-space characters from the original string.</returns>
     [Pure]
     public static string RemoveWhiteSpace(this string? value)
     {
@@ -129,7 +148,7 @@ public static class StringExtension
             return "";
 
         Span<char> resultSpan = new char[value.Length];
-        int index = 0;
+        var index = 0;
 
         foreach (char c in value)
         {
@@ -142,48 +161,97 @@ public static class StringExtension
         return new string(resultSpan.Slice(0, index));
     }
 
-
+    /// <summary>
+    /// Determines whether the string ends with any of the specified suffixes.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <param name="suffixes">An enumerable collection of suffixes to check against.</param>
+    /// <param name="comparison">One of the enumeration values that specifies how the strings will be compared.</param>
+    /// <returns><c>true</c> if the string ends with any of the specified suffixes; otherwise, <c>false</c>.</returns>
     [Pure]
     public static bool EndsWithAny(this string value, IEnumerable<string> suffixes, StringComparison comparison = StringComparison.Ordinal)
     {
-        return suffixes.Any(t => value.EndsWith(t, comparison));
-    }
-
-    [Pure]
-    public static bool StartsWithAny(this string value, IEnumerable<string> prefixes, StringComparison comparison = StringComparison.Ordinal)
-    {
-        return prefixes.Any(t => value.StartsWith(t, comparison));
-    }
-
-    [Pure]
-    public static bool ContainsAny(this string value, List<string> values, StringComparison comparison = StringComparison.Ordinal)
-    {
-        return value.Where((t, i) => value.IndexOf(values[i], comparison) != -1).Any();
-    }
-
-    /// <summary>
-    /// Determine if a string contains any of the given characters
-    /// </summary>
-    [Pure]
-    public static bool ContainsAny(this string value, params char[]? characters)
-    {
-        if (value.IsNullOrEmpty() || characters == null || characters.Length == 0)
-            return false;
-
-        foreach (char t in value)
+        foreach (string suffix in suffixes)
         {
-            if (Array.IndexOf(characters, t) >= 0)
+            if (value.EndsWith(suffix, comparison))
                 return true;
         }
 
         return false;
     }
 
-    /// <returns>true if any are equal</returns>
+    /// <summary>
+    /// Determines whether the string starts with any of the specified prefixes.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <param name="prefixes">An enumerable collection of prefixes to check against.</param>
+    /// <param name="comparison">One of the enumeration values that specifies how the strings will be compared.</param>
+    /// <returns><c>true</c> if the string starts with any of the specified prefixes; otherwise, <c>false</c>.</returns>
+    [Pure]
+    public static bool StartsWithAny(this string value, IEnumerable<string> prefixes, StringComparison comparison = StringComparison.Ordinal)
+    {
+        foreach (string prefix in prefixes)
+        {
+            if (value.StartsWith(prefix, comparison))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether the string contains any of the specified values.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <param name="values">A list of values to search for.</param>
+    /// <param name="comparison">One of the enumeration values that specifies how the strings will be compared.</param>
+    /// <returns><c>true</c> if the string contains any of the specified values; otherwise, <c>false</c>.</returns>
+    [Pure]
+    public static bool ContainsAny(this string value, List<string> values, StringComparison comparison = StringComparison.Ordinal)
+    {
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (value.IndexOf(values[i], comparison) != -1)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether the string contains any of the specified characters.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <param name="characters">The characters to search for.</param>
+    /// <returns><c>true</c> if the string contains any of the specified characters; otherwise, <c>false</c>.</returns>
+    [Pure]
+    public static bool ContainsAny(this string value, params char[]? characters)
+    {
+        if (value.IsNullOrEmpty() || characters == null || characters.Length == 0)
+            return false;
+
+        for (var i = 0; i < value.Length; i++)
+        {
+            char character = value[i];
+
+            if (Array.IndexOf(characters, character) >= 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether the string is equal to any of the specified strings using the specified comparison rules.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <param name="comparison">One of the enumeration values that specifies how the strings will be compared.</param>
+    /// <param name="strings">The strings to compare against.</param>
+    /// <returns><c>true</c> if the string is equal to any of the specified strings; otherwise, <c>false</c>.</returns>
     [Pure]
     public static bool EqualsAny(this string value, StringComparison comparison = StringComparison.Ordinal, params string[] strings)
     {
-        for (int i = 0; i < strings.Length; i++)
+        for (var i = 0; i < strings.Length; i++)
         {
             if (string.Equals(value, strings[i], comparison))
             {
@@ -194,7 +262,13 @@ public static class StringExtension
         return false;
     }
 
-    /// <returns>true if any are equal</returns>
+    /// <summary>
+    /// Determines whether the string is equal to any of the strings in the specified collection using the specified comparison rules.
+    /// </summary>
+    /// <param name="value">The string to check.</param>
+    /// <param name="strings">The collection of strings to compare against.</param>
+    /// <param name="comparison">One of the enumeration values that specifies how the strings will be compared.</param>
+    /// <returns><c>true</c> if the string is equal to any of the strings in the collection; otherwise, <c>false</c>.</returns>
     [Pure]
     public static bool EqualsAny(this string value, IEnumerable<string> strings, StringComparison comparison = StringComparison.Ordinal)
     {
@@ -246,7 +320,7 @@ public static class StringExtension
     {
         Span<char> result = new char[value.Length];
 
-        for (int i = 0; i < value.Length; i++)
+        for (var i = 0; i < value.Length; i++)
         {
             result[i] = value[i] == '.' ? '-' : value[i];
         }
@@ -254,6 +328,11 @@ public static class StringExtension
         return new string(result);
     }
 
+    /// <summary>
+    /// Converts the first character of the string to lowercase if the string is not null or white-space.
+    /// </summary>
+    /// <param name="value">The string to convert.</param>
+    /// <returns>The string with the first character converted to lowercase, or the original string if it is null or white-space.</returns>
     [Pure]
     public static string? ToLowerFirstChar([NotNullIfNotNull(nameof(value))] this string? value)
     {
@@ -266,6 +345,11 @@ public static class StringExtension
         return char.ToLowerInvariant(value[0]) + value[1..];
     }
 
+    /// <summary>
+    /// Converts the first character of the string to uppercase if the string is not null or white-space.
+    /// </summary>
+    /// <param name="value">The string to convert.</param>
+    /// <returns>The string with the first character converted to uppercase, or the original string if it is null or white-space.</returns>
     [Pure]
     public static string? ToUpperFirstChar([NotNullIfNotNull(nameof(value))] this string? value)
     {
@@ -279,16 +363,18 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// This expects no spaces!
+    /// Splits a comma-separated string into a list of substrings. Spaces are not expected.
     /// </summary>
+    /// <param name="value">The comma-separated string to split.</param>
+    /// <returns>A list containing the substrings separated by commas.</returns>
     [Pure]
     public static List<string> FromCommaSeparatedToList(this string value)
     {
-        List<string> list = new List<string>();
+        var list = new List<string>();
         ReadOnlySpan<char> span = value.AsSpan();
-        int startIndex = 0;
+        var startIndex = 0;
 
-        for (int i = 0; i < span.Length; i++)
+        for (var i = 0; i < span.Length; i++)
         {
             if (span[i] == ',')
             {
@@ -354,7 +440,7 @@ public static class StringExtension
         int length = span.Length;
         int index = -1;
 
-        for (int i = 0; i < length - 1; i++)
+        for (var i = 0; i < length - 1; i++)
         {
             if (span[i] == '\r' && span[i + 1] == '\n')
             {
@@ -373,6 +459,11 @@ public static class StringExtension
         return new string(result);
     }
 
+    /// <summary>
+    /// Extracts the short form of a zip code by removing any characters after the hyphen (if present).
+    /// </summary>
+    /// <param name="value">The input zip code string.</param>
+    /// <returns>The short form of the zip code.</returns>
     [Pure]
     public static string ToShortZipCode(this string value)
     {
@@ -380,6 +471,11 @@ public static class StringExtension
         return index == -1 ? value : value.AsSpan().Slice(0, index).ToString();
     }
 
+    /// <summary>
+    /// Shuffles the characters in the string randomly.
+    /// </summary>
+    /// <param name="value">The input string to be shuffled.</param>
+    /// <returns>The shuffled string.</returns>
     [Pure]
     public static string Shuffle(this string value)
     {
@@ -588,9 +684,10 @@ public static class StringExtension
 
         var list = new List<string>();
         ReadOnlySpan<char> span = str.AsSpan();
-        int startIndex = 0;
 
-        for (int i = 0; i < span.Length; i++)
+        var startIndex = 0;
+
+        for (var i = 0; i < span.Length; i++)
         {
             if (span[i] == ':')
             {
@@ -616,20 +713,19 @@ public static class StringExtension
     [Pure]
     public static (string PartitionKey, string DocumentId) ToSplitId(this string id)
     {
-        if (id.IsNullOrEmpty())
-            throw new ArgumentNullException(nameof(id), $"Argument '{nameof(id)}' may not be null or empty");
+        ThrowIfNullOrEmpty(id);
 
-        ReadOnlySpan<char> idSpan = id.AsSpan();
+        ReadOnlySpan<char> span = id;
 
-        int colonIndex = idSpan.IndexOf(':');
+        int lastColonIndex = span.LastIndexOf(':');
 
-        if (colonIndex == -1)
+        if (lastColonIndex == -1)
             return (id, id);
 
-        ReadOnlySpan<char> partitionKeySpan = idSpan.Slice(0, colonIndex);
-        ReadOnlySpan<char> documentIdSpan = idSpan.Slice(colonIndex + 1);
+        ReadOnlySpan<char> partitionKey = span.Slice(0, lastColonIndex);
+        ReadOnlySpan<char> documentId = span.Slice(lastColonIndex + 1);
 
-        return (partitionKeySpan.ToString(), documentIdSpan.ToString());
+        return (partitionKey.ToString(), documentId.ToString());
     }
 
     [Pure]

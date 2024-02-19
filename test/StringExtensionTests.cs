@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
@@ -197,5 +198,17 @@ public class StringExtensionTests
         string result = input.Mask();
 
         result.Should().Be("**************ing");
+    }
+
+    [Theory]
+    [InlineData("id", "id", "id")]
+    [InlineData("partitionKey:documentId", "partitionKey", "documentId")]
+    [InlineData("otherid:partitionkey:documentid", "otherid:partitionkey", "documentid")]
+    public void ToSplitId_ReturnsCorrectValues(string input, string expectedPartitionKey, string expectedDocumentId)
+    {
+        (string partitionKey, string documentId) = input.ToSplitId();
+
+        partitionKey.Should().Be(expectedPartitionKey);
+        documentId.Should().Be(expectedDocumentId);
     }
 }
