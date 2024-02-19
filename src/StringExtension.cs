@@ -33,7 +33,7 @@ public static class StringExtension
         if (value.Length <= length)
             return value;
 
-        string result = value[..Math.Min(length, value.Length)];
+        string result = value.AsSpan(0, length).ToString();
         return result;
     }
 
@@ -45,10 +45,18 @@ public static class StringExtension
     [Pure]
     public static bool IsAlphaNumeric(this string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (value.IsNullOrWhiteSpace())
             return false;
 
-        return value.All(char.IsLetterOrDigit);
+        for (int i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+
+            if (!char.IsLetterOrDigit(c))
+                return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -96,26 +104,44 @@ public static class StringExtension
     [Pure]
     public static string RemoveNonDigits(this string? value)
     {
-        if (value == null)
+        if (value.IsNullOrEmpty())
             return "";
 
-        IEnumerable<char> nonDigits = value.Where(char.IsDigit);
+        Span<char> result = new char[value.Length];
 
-        string result = string.Concat(nonDigits);
-        return result;
+        int index = 0;
+        foreach (char c in value)
+        {
+            if (char.IsDigit(c))
+            {
+                result[index] = c;
+                index++;
+            }
+        }
+
+        return new string(result.Slice(0, index));
     }
 
     [Pure]
     public static string RemoveWhiteSpace(this string? value)
     {
-        if (value == null)
+        if (value.IsNullOrEmpty())
             return "";
 
-        IEnumerable<char> nonWhiteSpaced = value.Where(c => !char.IsWhiteSpace(c));
+        Span<char> resultSpan = new char[value.Length];
+        int index = 0;
 
-        string result = string.Concat(nonWhiteSpaced);
-        return result;
+        foreach (char c in value)
+        {
+            if (!char.IsWhiteSpace(c))
+            {
+                resultSpan[index++] = c;
+            }
+        }
+
+        return new string(resultSpan.Slice(0, index));
     }
+
 
     [Pure]
     public static bool EndsWithAny(this string value, IEnumerable<string> suffixes, StringComparison comparison = StringComparison.Ordinal)
@@ -141,7 +167,7 @@ public static class StringExtension
     [Pure]
     public static bool ContainsAny(this string value, params char[]? characters)
     {
-        if (string.IsNullOrEmpty(value) || characters == null || characters.Length == 0)
+        if (value.IsNullOrEmpty() || characters == null || characters.Length == 0)
             return false;
 
         foreach (char t in value)
@@ -157,14 +183,28 @@ public static class StringExtension
     [Pure]
     public static bool EqualsAny(this string value, StringComparison comparison = StringComparison.Ordinal, params string[] strings)
     {
-        return strings.Any(test => value.Equals(test, comparison));
+        for (int i = 0; i < strings.Length; i++)
+        {
+            if (string.Equals(value, strings[i], comparison))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <returns>true if any are equal</returns>
     [Pure]
     public static bool EqualsAny(this string value, IEnumerable<string> strings, StringComparison comparison = StringComparison.Ordinal)
     {
-        return strings.Any(test => value.Equals(test, comparison));
+        foreach (string test in strings)
+        {
+            if (value.Equals(test, comparison))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -204,8 +244,14 @@ public static class StringExtension
     [Pure]
     public static string FromPeriodsToDashes(this string value)
     {
-        string result = value.Replace('.', '-');
-        return result;
+        Span<char> result = new char[value.Length];
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            result[i] = value[i] == '.' ? '-' : value[i];
+        }
+
+        return new string(result);
     }
 
     [Pure]
@@ -238,7 +284,26 @@ public static class StringExtension
     [Pure]
     public static List<string> FromCommaSeparatedToList(this string value)
     {
-        List<string> list = value.Split(',').ToList();
+        List<string> list = new List<string>();
+        ReadOnlySpan<char> span = value.AsSpan();
+        int startIndex = 0;
+
+        for (int i = 0; i < span.Length; i++)
+        {
+            if (span[i] == ',')
+            {
+                // Add the substring between the current start index and the comma
+                list.Add(span.Slice(startIndex, i - startIndex).ToString());
+                startIndex = i + 1;
+            }
+        }
+
+        // Add the remaining substring after the last comma
+        if (startIndex < span.Length)
+        {
+            list.Add(span.Slice(startIndex).ToString());
+        }
+
         return list;
     }
 
@@ -248,9 +313,7 @@ public static class StringExtension
     [Pure]
     public static byte[] ToBytes(this string value)
     {
-        var utf8 = new UTF8Encoding();
-        byte[] result = utf8.GetBytes(value);
-        return result;
+        return Encoding.UTF8.GetBytes(value);
     }
 
     /// <summary>
@@ -287,18 +350,34 @@ public static class StringExtension
     [Pure]
     public static string ToUnixLineBreaks(this string value)
     {
-        string result = value.Replace("\r\n", "\n");
-        return result;
+        ReadOnlySpan<char> span = value.AsSpan();
+        int length = span.Length;
+        int index = -1;
+
+        for (int i = 0; i < length - 1; i++)
+        {
+            if (span[i] == '\r' && span[i + 1] == '\n')
+            {
+                index = i;
+                break;
+            }
+        }
+
+        if (index == -1)
+            return value;
+
+        Span<char> result = new char[length];
+        span.Slice(0, index).CopyTo(result);
+        span.Slice(index + 1).CopyTo(result.Slice(index));
+
+        return new string(result);
     }
 
     [Pure]
     public static string ToShortZipCode(this string value)
     {
-        if (!value.Contains('-'))
-            return value;
-
-        string result = value.Split('-')[0];
-        return result;
+        int index = value.IndexOf('-');
+        return index == -1 ? value : value.AsSpan().Slice(0, index).ToString();
     }
 
     [Pure]
@@ -307,14 +386,20 @@ public static class StringExtension
         char[] array = value.ToCharArray();
         int n = array.Length;
 
+        Span<char> span = array;
+
         while (n > 1)
         {
             n--;
             int k = RandomUtil.Next(n + 1);
-            (array[n], array[k]) = (array[k], array[n]);
+
+            // ReSharper disable once SwapViaDeconstruction
+            char temp = span[n];
+            span[n] = span[k];
+            span[k] = temp;
         }
 
-        return new string(array);
+        return new string(span);
     }
 
     /// <summary>
@@ -328,14 +413,20 @@ public static class StringExtension
         char[] array = value.ToCharArray();
         int n = array.Length;
 
+        Span<char> span = array;
+
         while (n > 1)
         {
             n--;
             int k = RandomNumberGenerator.GetInt32(n + 1);
-            (array[n], array[k]) = (array[k], array[n]);
+
+            // ReSharper disable once SwapViaDeconstruction
+            char temp = span[n];
+            span[n] = span[k];
+            span[k] = temp;
         }
 
-        return new string(array);
+        return new string(span);
     }
 
     /// <summary>
@@ -377,7 +468,7 @@ public static class StringExtension
     {
         if (value != null && value.Length > 0 && value[value.Length - 1] == charToRemove)
         {
-            var span = value.AsSpan();
+            ReadOnlySpan<char> span = value.AsSpan();
             return span.Slice(0, span.Length - 1).ToString();
         }
 
@@ -395,7 +486,7 @@ public static class StringExtension
     {
         if (value != null && value.Length > 0 && value[0] == charToRemove)
         {
-            var span = value.AsSpan();
+            ReadOnlySpan<char> span = value.AsSpan();
             return span.Slice(1).ToString();
         }
 
@@ -436,7 +527,7 @@ public static class StringExtension
     [Pure]
     public static TEnum ToEnum<TEnum>(this string value) where TEnum : struct, Enum
     {
-        if (string.IsNullOrEmpty(value))
+        if (value.IsNullOrEmpty())
             throw new ArgumentException($"Empty/null string was attempted to convert to enum of type {typeof(TEnum)}", nameof(value));
 
         return (TEnum) Enum.Parse(typeof(TEnum), value, true);
@@ -445,7 +536,7 @@ public static class StringExtension
     [Pure]
     public static TEnum? TryToEnum<TEnum>(this string? value) where TEnum : struct, Enum
     {
-        if (string.IsNullOrEmpty(value))
+        if (value.IsNullOrEmpty())
             return null;
 
         bool parsedSuccessfully = Enum.TryParse(typeof(TEnum), value, true, out object? rtn);
@@ -464,9 +555,12 @@ public static class StringExtension
     public static async ValueTask<MemoryStream> ToMemoryStream(this string str)
     {
         var stream = new MemoryStream();
-        var writer = new StreamWriter(stream);
-        await writer.WriteAsync(str).ConfigureAwait(false);
-        await writer.FlushAsync().ConfigureAwait(false);
+
+        await using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 1024, leaveOpen: true))
+        {
+            await writer.WriteAsync(str).ConfigureAwait(false);
+        }
+
         stream.ToStart();
         return stream;
     }
@@ -492,9 +586,22 @@ public static class StringExtension
         if (str.IsNullOrEmpty())
             return null;
 
-        string[] result = str.Split(':');
+        var list = new List<string>();
+        ReadOnlySpan<char> span = str.AsSpan();
+        int startIndex = 0;
 
-        return result.ToList();
+        for (int i = 0; i < span.Length; i++)
+        {
+            if (span[i] == ':')
+            {
+                list.Add(span.Slice(startIndex, i - startIndex).ToString());
+                startIndex = i + 1;
+            }
+        }
+
+        list.Add(span.Slice(startIndex).ToString());
+
+        return list;
     }
 
     /// <summary>
@@ -512,31 +619,29 @@ public static class StringExtension
         if (id.IsNullOrEmpty())
             throw new ArgumentNullException(nameof(id), $"Argument '{nameof(id)}' may not be null or empty");
 
-        if (!id.Contains(':'))
+        ReadOnlySpan<char> idSpan = id.AsSpan();
+
+        int colonIndex = idSpan.IndexOf(':');
+
+        if (colonIndex == -1)
             return (id, id);
 
-        string[] idParts = id.Split(':');
+        ReadOnlySpan<char> partitionKeySpan = idSpan.Slice(0, colonIndex);
+        ReadOnlySpan<char> documentIdSpan = idSpan.Slice(colonIndex + 1);
 
-        return idParts.Length switch
-        {
-            // Strange scenario; this looks like 'guid:'
-            1 => (idParts[0], idParts[0]),
-            2 => (idParts[0], idParts[1]),
-            // These are for combined ids.. the document id is the last in the string and everything before that is the partition key
-            _ => (string.Join(':', idParts, 0, idParts.Length - 1), idParts[^1])
-        };
+        return (partitionKeySpan.ToString(), documentIdSpan.ToString());
     }
 
     [Pure]
     public static string AddPartitionKey(this string documentId, string partitionKey)
     {
-        return $"{partitionKey}:{documentId}";
+        return partitionKey + ":" + documentId;
     }
 
     [Pure]
     public static string AddDocumentId(this string partitionKey, string documentId)
     {
-        return $"{partitionKey}:{documentId}";
+        return partitionKey + ":" + documentId;
     }
 
     /// <returns>A 32 bit int, or if null or whitespace, 0</returns>
@@ -609,7 +714,7 @@ public static class StringExtension
     /// <exception cref="ArgumentException">Thrown when the input string is null or empty.</exception>
     public static void ThrowIfNullOrEmpty(this string? input, [CallerMemberName] string? name = null)
     {
-        bool result = IsNullOrEmpty(input);
+        bool result = input.IsNullOrEmpty();
 
         if (result)
             throw new ArgumentException("String cannot be null or empty", name);
@@ -623,7 +728,7 @@ public static class StringExtension
     /// <exception cref="ArgumentException">Thrown when the input string is null or whitespace.</exception>
     public static void ThrowIfNullOrWhitespace(this string? input, [CallerMemberName] string? name = null)
     {
-        bool result = IsNullOrWhiteSpace(input);
+        bool result = input.IsNullOrWhiteSpace();
 
         if (result)
             throw new ArgumentException("String cannot be null or whitespace", name);
