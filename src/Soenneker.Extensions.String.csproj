@@ -25,6 +25,8 @@
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/soenneker/soenneker.extensions.string</PackageProjectUrl>
         <RepositoryUrl>https://github.com/soenneker/soenneker.extensions.string</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryBranch>main</RepositoryBranch>
         <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <LangVersion>latest</LangVersion>
