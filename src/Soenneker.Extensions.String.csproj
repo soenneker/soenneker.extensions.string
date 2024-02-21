@@ -39,7 +39,7 @@
         <None Include="..\LICENSE" Pack="true" PackagePath="\" />
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
         
-        <PackageReference Include="Soenneker.Extensions.ByteArray" Version="2.1.23" />
+        <PackageReference Include="Soenneker.Extensions.ByteArray" Version="2.1.25" />
         <PackageReference Include="Soenneker.Extensions.Stream" Version="2.1.21" />
         <PackageReference Include="Soenneker.Utils.Random" Version="2.1.23" />
         <PackageReference Include="Soenneker.Utils.RegexCollection" Version="2.1.26" />
