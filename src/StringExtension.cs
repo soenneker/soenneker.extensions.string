@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Soenneker.Extensions.ByteArray;
+using Soenneker.Extensions.Char;
 using Soenneker.Extensions.Stream;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
@@ -848,5 +849,35 @@ public static class StringExtension
         var maskedPart = new string('*', maskLength);
         string visiblePart = input.Substring(maskLength, Math.Min(13, input.Length - maskLength));
         return maskedPart + visiblePart;
+    }
+
+    [Pure]
+    public static string ToUpperInvariant(this string str)
+    {
+        ReadOnlySpan<char> charArray = str.AsSpan();
+
+        var result = new char[charArray.Length];
+
+        for (var i = 0; i < charArray.Length; i++)
+        {
+            result[i] = charArray[i].ToUpperInvariant();
+        }
+
+        return new string(result);
+    }
+
+    [Pure]
+    public static string ToLowerInvariant(this string str)
+    {
+        ReadOnlySpan<char> charArray = str.AsSpan();
+
+        var result = new char[charArray.Length];
+
+        for (var i = 0; i < charArray.Length; i++)
+        {
+            result[i] = charArray[i].ToUpperInvariant();
+        }
+
+        return new string(result);
     }
 }
