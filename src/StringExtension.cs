@@ -341,9 +341,9 @@ public static class StringExtension
             return value;
 
         if (value.Length == 1)
-            return char.ToLowerInvariant(value[0]).ToString();
+            return value[0].ToLowerInvariant().ToString();
 
-        return char.ToLowerInvariant(value[0]) + value[1..];
+        return value[0].ToLowerInvariant() + value[1..];
     }
 
     /// <summary>
@@ -358,9 +358,9 @@ public static class StringExtension
             return value;
 
         if (value.Length == 1)
-            return char.ToUpperInvariant(value[0]).ToString();
+            return value[0].ToUpperInvariant().ToString();
 
-        return char.ToUpperInvariant(value[0]) + value[1..];
+        return value[0].ToUpperInvariant() + value[1..];
     }
 
     /// <summary>
