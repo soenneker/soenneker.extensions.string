@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
@@ -54,23 +53,23 @@ public class StringExtensionTests
     }
 
     [Theory]
-    [InlineData(null, "")]
+    [InlineData(null, null)]
     [InlineData("arst", "")]
     [InlineData("arst23k@3 3 test", "2333")]
-    public void RemoveNonDigits_tests(string? test, string expected)
+    public void RemoveNonDigits_tests(string? test, string? expected)
     {
-        string result = test.RemoveNonDigits();
+        string? result = test.RemoveNonDigits();
 
         result.Should().Be(expected);
     }
 
     [Theory]
-    [InlineData(null, "")]
+    [InlineData(null, null)]
     [InlineData("arst23k", "arst23k")]
     [InlineData("arst23k@3 3 test", "arst23k@33test")]
-    public void RemoveWhiteSpace_should_remove_white_space(string? test, string expected)
+    public void RemoveWhiteSpace_should_remove_white_space(string? test, string? expected)
     {
-        string result = test.RemoveWhiteSpace();
+        string? result = test.RemoveWhiteSpace();
 
         result.Should().Be(expected);
     }
