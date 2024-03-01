@@ -211,4 +211,13 @@ public class StringExtensionTests
         partitionKey.Should().Be(expectedPartitionKey);
         documentId.Should().Be(expectedDocumentId);
     }
+
+    [Fact]
+    public void RemoveDashes_should_remove_dashes()
+    {
+        const string input = "This-Is-ALongString";
+        string? result = input.RemoveDashes();
+
+        result.Should().Be("ThisIsALongString");
+    }
 }

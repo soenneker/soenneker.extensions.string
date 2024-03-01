@@ -118,16 +118,20 @@ public static class StringExtension
     /// <param name="value">The input string.</param>
     /// <returns>A new string that contains only the digit characters from the original string.</returns>
     [Pure]
-    public static string RemoveNonDigits(this string? value)
+    public static string? RemoveNonDigits([NotNullIfNotNull(nameof(value))] this string? value)
     {
-        if (value.IsNullOrEmpty())
-            return "";
+        if (value == null)
+            return null;
+
+        if (value.IsEmpty())
+            return value;
 
         Span<char> result = new char[value.Length];
         var index = 0;
 
-        foreach (char c in value)
+        for (var i = 0; i < value.Length; i++)
         {
+            char c = value[i];
             if (char.IsDigit(c))
             {
                 result[index++] = c;
@@ -143,17 +147,51 @@ public static class StringExtension
     /// <param name="value">The input string.</param>
     /// <returns>A new string that contains only the non-white-space characters from the original string.</returns>
     [Pure]
-    public static string RemoveWhiteSpace(this string? value)
+    public static string? RemoveWhiteSpace([NotNullIfNotNull(nameof(value))] this string? value)
     {
-        if (value.IsNullOrEmpty())
-            return "";
+        if (value == null)
+            return null;
+
+        if (value.IsEmpty())
+            return value;
 
         Span<char> resultSpan = new char[value.Length];
         var index = 0;
 
-        foreach (char c in value)
+        for (var i = 0; i < value.Length; i++)
         {
+            char c = value[i];
             if (!char.IsWhiteSpace(c))
+            {
+                resultSpan[index++] = c;
+            }
+        }
+
+        return new string(resultSpan.Slice(0, index));
+    }
+
+
+    /// <summary>
+    /// Removes all white-space characters from the string.
+    /// </summary>
+    /// <param name="value">The input string.</param>
+    /// <returns>A new string that contains only the non-white-space characters from the original string.</returns>
+    [Pure]
+    public static string? RemoveDashes([NotNullIfNotNull(nameof(value))] this string? value)
+    {
+        if (value == null)
+            return null;
+
+        if (value.IsEmpty())
+            return value;
+
+        Span<char> resultSpan = new char[value.Length];
+        var index = 0;
+
+        for (var i = 0; i < value.Length; i++)
+        {
+            char c = value[i];
+            if (c != '-')
             {
                 resultSpan[index++] = c;
             }
@@ -533,6 +571,15 @@ public static class StringExtension
     public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
     {
         return string.IsNullOrEmpty(value);
+    }
+
+    /// <summary>
+    /// Shorthand for value == ""/>
+    /// </summary>
+    [Pure]
+    public static bool IsEmpty(this string? value)
+    {
+        return value == "";
     }
 
     /// <summary>
