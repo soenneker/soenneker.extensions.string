@@ -147,7 +147,8 @@ public static class StringExtension
     /// <param name="value">The input string.</param>
     /// <returns>A new string that contains only the non-white-space characters from the original string.</returns>
     [Pure]
-    public static string? RemoveWhiteSpace([NotNullIfNotNull(nameof(value))] this string? value)
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? RemoveWhiteSpace(this string? value)
     {
         if (value == null)
             return null;
@@ -177,7 +178,8 @@ public static class StringExtension
     /// <param name="value">The input string.</param>
     /// <returns>A new string that contains only the non-white-space characters from the original string.</returns>
     [Pure]
-    public static string? RemoveDashes([NotNullIfNotNull(nameof(value))] this string? value)
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? RemoveDashes(this string? value)
     {
         if (value == null)
             return null;
@@ -373,7 +375,8 @@ public static class StringExtension
     /// <param name="value">The string to convert.</param>
     /// <returns>The string with the first character converted to lowercase, or the original string if it is null or white-space.</returns>
     [Pure]
-    public static string? ToLowerFirstChar([NotNullIfNotNull(nameof(value))] this string? value)
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? ToLowerFirstChar(this string? value)
     {
         if (value.IsNullOrWhiteSpace())
             return value;
@@ -390,7 +393,8 @@ public static class StringExtension
     /// <param name="value">The string to convert.</param>
     /// <returns>The string with the first character converted to uppercase, or the original string if it is null or white-space.</returns>
     [Pure]
-    public static string? ToUpperFirstChar([NotNullIfNotNull(nameof(value))] this string? value)
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? ToUpperFirstChar(this string? value)
     {
         if (value.IsNullOrWhiteSpace())
             return value;
@@ -447,6 +451,7 @@ public static class StringExtension
     /// </summary>
     /// <remarks>https://stackoverflow.com/questions/602642/server-urlencode-vs-httputility-urlencode/1148326#1148326</remarks>
     [Pure]
+    [return: NotNullIfNotNull(nameof(value))]
     public static string? ToEscaped(this string? value)
     {
         if (value == null)
@@ -460,6 +465,7 @@ public static class StringExtension
     /// Utilizes <see cref="Uri.UnescapeDataString"/>
     /// </summary>
     [Pure]
+    [return: NotNullIfNotNull(nameof(value))]
     public static string? ToUnescaped(this string? value)
     {
         if (value == null)
@@ -608,7 +614,8 @@ public static class StringExtension
     /// <param name="charToRemove">The character to remove from the end of the string.</param>
     /// <returns>The string with the trailing character removed, or the original string if it is null or empty.</returns>
     [Pure]
-    public static string? RemoveTrailingChar([NotNullIfNotNull(nameof(value))] this string? value, char charToRemove)
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? RemoveTrailingChar(this string? value, char charToRemove)
     {
         if (value != null && value.Length > 0 && value[value.Length - 1] == charToRemove)
         {
@@ -626,7 +633,8 @@ public static class StringExtension
     /// <param name="charToRemove">The character to remove from the beginning of the string.</param>
     /// <returns>The string with the leading character removed, or the original string if it is null or empty.</returns>
     [Pure]
-    public static string? RemoveLeadingChar([NotNullIfNotNull(nameof(value))] this string? value, char charToRemove)
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? RemoveLeadingChar(this string? value, char charToRemove)
     {
         if (value != null && value.Length > 0 && value[0] == charToRemove)
         {
@@ -641,6 +649,7 @@ public static class StringExtension
     /// Converts to lowercase, and then removes/replaces characters that are invalid for URIs (does not replace accents right now)
     /// </summary>
     [Pure]
+    [return: NotNullIfNotNull(nameof(value))]
     public static string? Slugify(this string? value)
     {
         if (value.IsNullOrEmpty())
@@ -898,6 +907,12 @@ public static class StringExtension
         return maskedPart + visiblePart;
     }
 
+    /// <summary>
+    /// Converts each character in the current <see cref="string"/> to its uppercase invariant equivalent.
+    /// </summary>
+    /// <param name="str">The string to convert.</param>
+    /// <returns>A new string in which each character has been converted to its uppercase invariant equivalent.</returns>
+    /// <remarks>This method is similar to <see cref="string.ToUpperInvariant"/> but operates on each character individually.</remarks>
     [Pure]
     public static string ToUpperInvariant(this string str)
     {
@@ -913,6 +928,47 @@ public static class StringExtension
         return new string(result);
     }
 
+    /// <summary>
+    /// Converts the input <see cref="string"/> from PascalCase to snake_case.
+    /// </summary>
+    /// <param name="input">The string to convert.</param>
+    /// <returns>A new string in snake_case format.</returns>
+    /// <remarks>
+    /// This method converts a PascalCase string to snake_case format.
+    /// For example, "PascalCaseString" will be converted to "pascal_case_string".
+    /// </remarks>
+    [Pure]
+    public static string ToSnakeCaseFromPascal(this string input)
+    {
+        if (string.IsNullOrEmpty(input))
+            return input;
+
+        Span<char> outputSpan = new char[input.Length * 2];
+        var outputIndex = 0;
+
+        for (var i = 0; i < input.Length; i++)
+        {
+            char currentChar = input[i];
+
+            // If it's an uppercase letter and not at the beginning, prepend an underscore.
+            if (char.IsUpper(currentChar) && i > 0)
+            {
+                outputSpan[outputIndex++] = '_';
+            }
+
+            outputSpan[outputIndex++] = char.ToLower(currentChar);
+        }
+
+        // Convert the Span<char> to a string.
+        return new string(outputSpan.Slice(0, outputIndex));
+    }
+
+    /// <summary>
+    /// Converts each character in the current <see cref="string"/> to its lowercase invariant equivalent.
+    /// </summary>
+    /// <param name="str">The string to convert.</param>
+    /// <returns>A new string in which each character has been converted to its lowercase invariant equivalent.</returns>
+    /// <remarks>This method is similar to <see cref="string.ToLowerInvariant"/> but operates on each character individually.</remarks>
     [Pure]
     public static string ToLowerInvariant(this string str)
     {
@@ -922,7 +978,7 @@ public static class StringExtension
 
         for (var i = 0; i < charArray.Length; i++)
         {
-            result[i] = charArray[i].ToUpperInvariant();
+            result[i] = charArray[i].ToLowerInvariant();
         }
 
         return new string(result);

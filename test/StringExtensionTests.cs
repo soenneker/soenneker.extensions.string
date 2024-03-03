@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
+using Microsoft.VisualStudio.TestPlatform.Utilities;
 using Xunit;
 
 namespace Soenneker.Extensions.String.Tests;
@@ -218,5 +219,84 @@ public class StringExtensionTests
         string? result = input.RemoveDashes();
 
         result.Should().Be("ThisIsALongString");
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    [InlineData("hello world", "hello-world")]
+    [InlineData("Hello World", "hello-world")]
+    [InlineData("HelloWorld", "helloworld")]
+    [InlineData("hello_world", "hello_world")]
+    [InlineData("Hello_World", "hello_world")]
+    [InlineData("Hello__World", "hello_world")]
+    [InlineData("Hello-World_", "hello-world")]
+    [InlineData("-Hello-World-", "hello-world")]
+    [InlineData("  Hello  World  ", "hello-world")]
+    [InlineData("12345", "12345")]
+    [InlineData("123-45", "123-45")]
+    public void Slugify_ReturnsExpectedResult(string? input, string? expectedResult)
+    {
+        // Act
+        string? result = input.Slugify();
+
+        // Assert
+        result.Should().Be(expectedResult);
+    }
+
+    [Fact]
+    public void Slugify_WithNullInput_ReturnsNull()
+    {
+        // Act
+        string? input = null;
+
+        string? result = input.Slugify();
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("", "")]
+    [InlineData("hello", "hello")]
+    [InlineData("helloWorld", "hello_world")]
+    [InlineData("HelloWorld", "hello_world")]
+    [InlineData("SomePascalString", "some_pascal_string")]
+    [InlineData("AnotherExample", "another_example")]
+    [InlineData("XMLHttpRequest", "x_m_l_http_request")]
+    public void ToSnakeCaseFromPascal_ConvertsPascalCaseToSnakeCase(string input, string expectedOutput)
+    {
+        // Act
+        string result = input.ToSnakeCaseFromPascal();
+
+        // Assert
+        result.Should().Be(expectedOutput);
+    }
+
+    [Fact]
+    public void ToSnakeCaseFromPascal_WithNullInput_ReturnsNull()
+    {
+        // Arrange
+        string? input = null;
+
+        // Act
+        string result = input.ToSnakeCaseFromPascal();
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void ToSnakeCaseFromPascal_WithEmptyInput_ReturnsEmpty()
+    {
+        // Arrange
+        string input = "";
+
+        // Act
+        string result = input.ToSnakeCaseFromPascal();
+
+        // Assert
+        result.Should().BeEmpty();
     }
 }
