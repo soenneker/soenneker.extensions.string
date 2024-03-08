@@ -788,13 +788,13 @@ public static class StringExtension
     [Pure]
     public static string AddPartitionKey(this string documentId, string partitionKey)
     {
-        return partitionKey + ":" + documentId;
+        return partitionKey + ':' + documentId;
     }
 
     [Pure]
     public static string AddDocumentId(this string partitionKey, string documentId)
     {
-        return partitionKey + ":" + documentId;
+        return partitionKey + ':' + documentId;
     }
 
     /// <returns>A 32 bit int, or if null or whitespace, 0</returns>
@@ -908,27 +908,6 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Converts each character in the current <see cref="string"/> to its uppercase invariant equivalent.
-    /// </summary>
-    /// <param name="str">The string to convert.</param>
-    /// <returns>A new string in which each character has been converted to its uppercase invariant equivalent.</returns>
-    /// <remarks>This method is similar to <see cref="string.ToUpperInvariant"/> but operates on each character individually.</remarks>
-    [Pure]
-    public static string ToUpperInvariant(this string str)
-    {
-        ReadOnlySpan<char> charArray = str.AsSpan();
-
-        var result = new char[charArray.Length];
-
-        for (var i = 0; i < charArray.Length; i++)
-        {
-            result[i] = charArray[i].ToUpperInvariant();
-        }
-
-        return new string(result);
-    }
-
-    /// <summary>
     /// Converts the input <see cref="string"/> from PascalCase to snake_case.
     /// </summary>
     /// <param name="input">The string to convert.</param>
@@ -964,13 +943,34 @@ public static class StringExtension
     }
 
     /// <summary>
+    /// Converts each character in the current <see cref="string"/> to its uppercase invariant equivalent.
+    /// </summary>
+    /// <param name="str">The string to convert.</param>
+    /// <returns>A new string in which each character has been converted to its uppercase invariant equivalent.</returns>
+    /// <remarks>This method is similar to <see cref="string.ToUpperInvariant"/> but operates on each character individually.</remarks>
+    [Pure]
+    public static string ToUpperInvariantFast(this string str)
+    {
+        ReadOnlySpan<char> charArray = str.AsSpan();
+
+        var result = new char[charArray.Length];
+
+        for (var i = 0; i < charArray.Length; i++)
+        {
+            result[i] = charArray[i].ToUpperInvariant();
+        }
+
+        return new string(result);
+    }
+
+    /// <summary>
     /// Converts each character in the current <see cref="string"/> to its lowercase invariant equivalent.
     /// </summary>
     /// <param name="str">The string to convert.</param>
     /// <returns>A new string in which each character has been converted to its lowercase invariant equivalent.</returns>
     /// <remarks>This method is similar to <see cref="string.ToLowerInvariant"/> but operates on each character individually.</remarks>
     [Pure]
-    public static string ToLowerInvariant(this string str)
+    public static string ToLowerInvariantFast(this string str)
     {
         ReadOnlySpan<char> charArray = str.AsSpan();
 
