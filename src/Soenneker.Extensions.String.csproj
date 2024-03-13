@@ -42,7 +42,7 @@
         <PackageReference Include="Soenneker.Extensions.ByteArray" Version="2.1.25" />
         
         <PackageReference Include="Soenneker.Extensions.Char" Version="2.1.5" />
-        <PackageReference Include="Soenneker.Extensions.Stream" Version="2.1.24" />
+        <PackageReference Include="Soenneker.Extensions.Stream" Version="2.1.25" />
         <PackageReference Include="Soenneker.Utils.Random" Version="2.1.26" />
         <PackageReference Include="Soenneker.Utils.RegexCollection" Version="2.1.26" />
     </ItemGroup>
