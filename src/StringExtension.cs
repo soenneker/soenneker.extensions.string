@@ -983,4 +983,30 @@ public static class StringExtension
 
         return new string(result);
     }
+
+    /// <summary>
+    /// Formats a 10-digit phone number string into a standard US phone number format.
+    /// </summary>
+    /// <remarks>
+    /// This method uses Span&lt;T&gt; for efficient memory usage and performance. 
+    /// It assumes the input is a valid 10-digit number without any formatting.
+    /// </remarks>
+    /// <param name="str">The unformatted 10-digit phone number string.</param>
+    /// <returns>The phone number formatted as (XXX) XXX-XXXX.</returns>
+    [Pure]
+    public static string ToDisplayPhoneNumber(this string str)
+    {
+        Span<char> spanNumber = stackalloc char[14]; // Allocate enough space for the formatted number
+
+        spanNumber[0] = '(';
+        str.AsSpan(0, 3).CopyTo(spanNumber.Slice(1, 3));
+        spanNumber[4] = ')';
+        spanNumber[5] = ' ';
+        str.AsSpan(3, 3).CopyTo(spanNumber.Slice(6, 3));
+        spanNumber[9] = '-';
+        str.AsSpan(6, 4).CopyTo(spanNumber.Slice(10, 4));
+
+        var result = new string(spanNumber);
+        return result;
+    }
 }
