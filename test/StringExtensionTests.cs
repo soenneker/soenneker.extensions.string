@@ -299,4 +299,12 @@ public class StringExtensionTests
         // Assert
         result.Should().BeEmpty();
     }
+
+    [Theory]
+    [InlineData("test", "Test")]
+    [InlineData("TEST", "Test")]
+    public void ToLowerAndToUpperFirstChar_should_give_result(string input, string expectedOutput)
+    {
+        input.ToLowerInvariantFast().ToUpperFirstChar().Should().Be(expectedOutput);
+    }
 }
