@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
@@ -306,5 +307,30 @@ public class StringExtensionTests
     public void ToLowerAndToUpperFirstChar_should_give_result(string input, string expectedOutput)
     {
         input.ToLowerInvariantFast().ToUpperFirstChar().Should().Be(expectedOutput);
+    }
+
+    [Theory]
+    [InlineData("1234567890", "(123) 456-7890")]
+    [InlineData("9876543210", "(987) 654-3210")]
+    public void ToDisplayPhoneNumber_ShouldFormatCorrectly(string input, string expected)
+    {
+        // Act
+        var result = input.ToDisplayPhoneNumber();
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void ToDisplayPhoneNumber_WithInvalidInput_ShouldThrowException()
+    {
+        // Arrange
+        var input = "12345"; // Not enough digits to format
+
+        // Act
+        Action act = () => input.ToDisplayPhoneNumber();
+
+        // Assert
+        act.Should().Throw<ArgumentOutOfRangeException>();
     }
 }
