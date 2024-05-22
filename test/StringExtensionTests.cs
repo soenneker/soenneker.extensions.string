@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestPlatform.Utilities;
+using Microsoft.VisualStudio.TestPlatform.Utilities.Helpers;
 using Xunit;
 
 namespace Soenneker.Extensions.String.Tests;
@@ -332,5 +333,20 @@ public class StringExtensionTests
 
         // Assert
         act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Theory]
+    [InlineData("example.txt", "txt")]
+    [InlineData("archive.tar.gz", "gz")]
+    [InlineData("no_extension", "")]
+    [InlineData("hiddenfile.", "")]
+    [InlineData("UPPERCASE.TXT", "txt")]
+    public void ToFileExtension_ShouldReturnExpectedExtension(string input, string expected)
+    {
+        // Act
+        var result = input.ToFileExtension();
+
+        // Assert
+        result.Should().Be(expected);
     }
 }

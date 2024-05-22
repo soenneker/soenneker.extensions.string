@@ -1009,4 +1009,18 @@ public static class StringExtension
         var result = new string(spanNumber);
         return result;
     }
+
+    /// <summary>
+    /// Extracts the file extension from the given file name.
+    /// </summary>
+    /// <param name="fileName">The name of the file from which to extract the extension.</param>
+    /// <returns>The file extension without the leading dot, in lowercase. Returns an empty string if the file name does not have an extension.</returns>
+    /// <exception cref="ArgumentException">Thrown when the <paramref name="fileName"/> is null or empty.</exception>
+    [Pure]
+    public static string ToFileExtension(this string fileName)
+    {
+        fileName.ThrowIfNullOrEmpty();
+
+        return Path.GetExtension(fileName).TrimStart('.').ToLower();
+    }
 }
