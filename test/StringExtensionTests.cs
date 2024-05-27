@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestPlatform.Utilities;
 using Microsoft.VisualStudio.TestPlatform.Utilities.Helpers;
@@ -348,5 +349,15 @@ public class StringExtensionTests
 
         // Assert
         result.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task ToMemoryStream_should_be_left_open()
+    {
+        const string testStr = "test";
+        var result = await testStr.ToMemoryStream();
+        result.CanRead.Should().BeTrue();
+        result.CanWrite.Should().BeTrue();
+        
     }
 }
