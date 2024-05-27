@@ -1023,4 +1023,25 @@ public static class StringExtension
 
         return Path.GetExtension(fileName).TrimStart('.').ToLower();
     }
+
+    /// <summary>
+    /// Converts a URI string to a filename by extracting the file name from the URI.
+    /// </summary>
+    /// <param name="uri">The URI string to extract the file name from.</param>
+    /// <returns>The file name extracted from the URI.</returns>
+    /// <exception cref="UriFormatException">Thrown if the input string is not a valid URI.</exception>
+    /// <example>
+    /// <code>
+    /// string uri = "http://www.example.com/path/to/your/file.txt";
+    /// string fileName = uri.ToFilenameFromUri();
+    /// Console.WriteLine(fileName); // Outputs: "file.txt"
+    /// </code>
+    /// </example>
+    [Pure]
+    public static string ToFileNameFromUri(this string uri)
+    {
+        var uriObj = new Uri(uri);
+        string fileName = Path.GetFileName(uriObj.AbsolutePath);
+        return fileName;
+    }
 }
