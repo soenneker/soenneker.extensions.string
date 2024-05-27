@@ -1025,7 +1025,7 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Converts a URI string to a filename by extracting the file name from the URI.
+    /// Converts a URI string to a filename by extracting the file name from the URI. If the provided string is not a uri, returns null.
     /// </summary>
     /// <param name="uri">The URI string to extract the file name from.</param>
     /// <returns>The file name extracted from the URI.</returns>
@@ -1038,9 +1038,11 @@ public static class StringExtension
     /// </code>
     /// </example>
     [Pure]
-    public static string ToFileNameFromUri(this string uri)
+    public static string? ToFileNameFromUri(this string uri)
     {
-        var uriObj = new Uri(uri);
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out Uri? uriObj))
+            return null;
+
         string fileName = Path.GetFileName(uriObj.AbsolutePath);
         return fileName;
     }
