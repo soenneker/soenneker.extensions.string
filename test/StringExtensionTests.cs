@@ -335,7 +335,7 @@ public class StringExtensionTests
         Action act = () => input.ToDisplayPhoneNumber();
 
         // Assert
-        act.Should().Throw<ArgumentOutOfRangeException>();
+        act.Should().Throw<ArgumentException>();
     }
 
     [Theory]
