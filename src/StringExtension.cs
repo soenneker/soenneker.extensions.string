@@ -985,29 +985,85 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Formats a 10-digit phone number string into a standard US phone number format.
+    /// Formats a 10-digit, 11-digit, or 12-digit phone number string into a standard US phone number format.
     /// </summary>
     /// <remarks>
     /// This method uses Span&lt;T&gt; for efficient memory usage and performance. 
-    /// It assumes the input is a valid 10-digit number without any formatting.
+    /// It assumes the input is a valid 11-digit, or 12-digit number without any formatting.
     /// </remarks>
-    /// <param name="str">The unformatted 10-digit phone number string.</param>
+    /// <param name="str">The unformatted 11-digit, or 12-digit phone number string.</param>
     /// <returns>The phone number formatted as (XXX) XXX-XXXX.</returns>
     [Pure]
     public static string ToDisplayPhoneNumber(this string str)
     {
         Span<char> spanNumber = stackalloc char[14]; // Allocate enough space for the formatted number
 
-        spanNumber[0] = '(';
-        str.AsSpan(0, 3).CopyTo(spanNumber.Slice(1, 3));
-        spanNumber[4] = ')';
-        spanNumber[5] = ' ';
-        str.AsSpan(3, 3).CopyTo(spanNumber.Slice(6, 3));
-        spanNumber[9] = '-';
-        str.AsSpan(6, 4).CopyTo(spanNumber.Slice(10, 4));
+        if (str.Length == 10)
+        {
+            spanNumber[0] = '(';
+            str.AsSpan(0, 3).CopyTo(spanNumber.Slice(1, 3));
+            spanNumber[4] = ')';
+            spanNumber[5] = ' ';
+            str.AsSpan(3, 3).CopyTo(spanNumber.Slice(6, 3));
+            spanNumber[9] = '-';
+            str.AsSpan(6, 4).CopyTo(spanNumber.Slice(10, 4));
+        }
+        else if (str.Length == 11 && str[0] == '1')
+        {
+            spanNumber[0] = '(';
+            str.AsSpan(1, 3).CopyTo(spanNumber.Slice(1, 3));
+            spanNumber[4] = ')';
+            spanNumber[5] = ' ';
+            str.AsSpan(4, 3).CopyTo(spanNumber.Slice(6, 3));
+            spanNumber[9] = '-';
+            str.AsSpan(7, 4).CopyTo(spanNumber.Slice(10, 4));
+        }
+        else if (str.Length == 12 && str.StartsWith("+1"))
+        {
+            spanNumber[0] = '(';
+            str.AsSpan(2, 3).CopyTo(spanNumber.Slice(1, 3));
+            spanNumber[4] = ')';
+            spanNumber[5] = ' ';
+            str.AsSpan(5, 3).CopyTo(spanNumber.Slice(6, 3));
+            spanNumber[9] = '-';
+            str.AsSpan(8, 4).CopyTo(spanNumber.Slice(10, 4));
+        }
+        else
+        {
+            throw new ArgumentException("Invalid phone number format. Expected formats: 8887737326, 18887737326, or +18887737326");
+        }
 
-        var result = new string(spanNumber);
-        return result;
+        return new string(spanNumber);
+    }
+
+    /// <summary>
+    /// Sanitizes the input phone number by removing all non-numeric characters,
+    /// except for a leading plus sign if present.
+    /// </summary>
+    /// <param name="input">The input phone number as a string.</param>
+    /// <returns>
+    /// A sanitized phone number string containing only digits and possibly a leading plus sign.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when the input is null or empty.
+    /// </exception>
+    [Pure]
+    public static string SanitizePhoneNumber(this string input)
+    {
+        input.ThrowIfNullOrWhitespace();
+
+        Span<char> result = stackalloc char[input.Length];
+        int index = 0;
+
+        foreach (char c in input)
+        {
+            if (char.IsDigit(c) || (c == '+' && index == 0))
+            {
+                result[index++] = c;
+            }
+        }
+
+        return new string(result.Slice(0, index));
     }
 
     /// <summary>

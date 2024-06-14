@@ -314,10 +314,12 @@ public class StringExtensionTests
     [Theory]
     [InlineData("1234567890", "(123) 456-7890")]
     [InlineData("9876543210", "(987) 654-3210")]
+    [InlineData("+19876543210", "(987) 654-3210")]
+    [InlineData("19876543210", "(987) 654-3210")]
     public void ToDisplayPhoneNumber_ShouldFormatCorrectly(string input, string expected)
     {
         // Act
-        var result = input.ToDisplayPhoneNumber();
+        string result = input.ToDisplayPhoneNumber();
 
         // Assert
         result.Should().Be(expected);
