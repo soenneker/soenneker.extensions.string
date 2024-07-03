@@ -864,13 +864,15 @@ public static class StringExtension
     /// </summary>
     /// <param name="input">The input string.</param>
     /// <param name="name">The name of the calling member.</param>
-    /// <exception cref="ArgumentException">Thrown when the input string is null or empty.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when the input string is null</exception>
+    /// <exception cref="ArgumentException">Thrown when the input string is empty.</exception>
     public static void ThrowIfNullOrEmpty(this string? input, [CallerMemberName] string? name = null)
     {
-        bool result = input.IsNullOrEmpty();
+        if (input == null)
+            throw new ArgumentNullException(name, "String cannot be null");
 
-        if (result)
-            throw new ArgumentException("String cannot be null or empty", name);
+        if (input.Length == 0)
+            throw new ArgumentException("String cannot be empty", name);
     }
 
     /// <summary>
@@ -878,13 +880,14 @@ public static class StringExtension
     /// </summary>
     /// <param name="input">The input string.</param>
     /// <param name="name">The name of the calling member.</param>
-    /// <exception cref="ArgumentException">Thrown when the input string is null or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when the input string is null</exception>
+    /// <exception cref="ArgumentException">Thrown when the input string is empty or whitespace.</exception>
     public static void ThrowIfNullOrWhitespace(this string? input, [CallerMemberName] string? name = null)
     {
-        bool result = input.IsNullOrWhiteSpace();
+        input.ThrowIfNullOrEmpty();
 
-        if (result)
-            throw new ArgumentException("String cannot be null or whitespace", name);
+        if (input!.Trim().Length == 0)
+            throw new ArgumentException("String cannot be whitespace", name);
     }
 
     /// <summary>
