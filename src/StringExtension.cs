@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Soenneker.Extensions.ByteArray;
 using Soenneker.Extensions.Char;
 using Soenneker.Extensions.Stream;
+using Soenneker.Extensions.Task;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
 
@@ -29,6 +30,7 @@ public static class StringExtension
     /// <param name="length">The maximum length of the truncated string.</param>
     /// <returns>The truncated string.</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string Truncate(this string value, int length)
     {
         if (value.Length <= length)
@@ -66,6 +68,7 @@ public static class StringExtension
     /// <param name="value">The string to check.</param>
     /// <returns>True if the string is numeric, otherwise false.</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNumeric(this string? value)
     {
         if (value.IsNullOrWhiteSpace())
@@ -80,6 +83,7 @@ public static class StringExtension
     /// <param name="value">The string to convert.</param>
     /// <returns>A <see cref="Nullable{Double}"/> that represents the converted nullable double-precision floating-point number if the conversion succeeds; otherwise, <c>null</c>.</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double? ToDouble(this string value)
     {
         if (value.IsNullOrWhiteSpace())
@@ -99,6 +103,7 @@ public static class StringExtension
     /// <param name="value">The string to convert.</param>
     /// <returns>A <see cref="Nullable{Decimal}"/> that represents the converted nullable decimal number if the conversion succeeds; otherwise, <c>null</c>.</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static decimal? ToDecimal(this string value)
     {
         if (value.IsNullOrWhiteSpace())
@@ -326,6 +331,7 @@ public static class StringExtension
     /// From Date, with "dd/MM/yyyy" (assuming local)
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime? ToDateTime(this string? date)
     {
         if (date == null)
@@ -340,6 +346,7 @@ public static class StringExtension
     }
 
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime? ToUtcDateTime(this string? value)
     {
         if (value == null)
@@ -440,6 +447,7 @@ public static class StringExtension
     /// Uses UTF8 encoding
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToBytes(this string value)
     {
         return Encoding.UTF8.GetBytes(value);
@@ -452,6 +460,7 @@ public static class StringExtension
     /// <remarks>https://stackoverflow.com/questions/602642/server-urlencode-vs-httputility-urlencode/1148326#1148326</remarks>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? ToEscaped(this string? value)
     {
         if (value == null)
@@ -466,6 +475,7 @@ public static class StringExtension
     /// </summary>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? ToUnescaped(this string? value)
     {
         if (value == null)
@@ -574,6 +584,7 @@ public static class StringExtension
     /// Shorthand for <see cref="string.IsNullOrEmpty"/>
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
     {
         return string.IsNullOrEmpty(value);
@@ -583,6 +594,7 @@ public static class StringExtension
     /// Shorthand for value == ""/>
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsEmpty(this string? value)
     {
         return value == "";
@@ -593,6 +605,7 @@ public static class StringExtension
     /// </summary>
     /// <remarks>This should be used over the IsPopulated() method on the IEnumerable extension</remarks>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasContent([NotNullWhen(true)] this string? value)
     {
         return !value.IsNullOrEmpty();
@@ -602,6 +615,7 @@ public static class StringExtension
     /// Shorthand for <see cref="string.IsNullOrWhiteSpace"/>
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value)
     {
         return string.IsNullOrWhiteSpace(value);
@@ -678,6 +692,7 @@ public static class StringExtension
     /// </summary>
     /// <exception cref="ArgumentException">If parsing fails</exception>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum ToEnum<TEnum>(this string value) where TEnum : struct, Enum
     {
         if (value.IsNullOrEmpty())
@@ -687,6 +702,7 @@ public static class StringExtension
     }
 
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum? TryToEnum<TEnum>(this string? value) where TEnum : struct, Enum
     {
         if (value.IsNullOrEmpty())
@@ -711,7 +727,7 @@ public static class StringExtension
 
         await using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 1024, leaveOpen: true))
         {
-            await writer.WriteAsync(str).ConfigureAwait(false);
+            await writer.WriteAsync(str).NoSync();
         }
 
         stream.ToStart();
@@ -723,6 +739,7 @@ public static class StringExtension
     /// </summary>
     /// <remarks>Equivalent to <code>Convert.FromBase64String(str).ToStr()</code></remarks>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToStringFromEncoded64(this string str)
     {
         string result = Convert.FromBase64String(str).ToStr();
@@ -786,12 +803,14 @@ public static class StringExtension
     }
 
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string AddPartitionKey(this string documentId, string partitionKey)
     {
         return partitionKey + ':' + documentId;
     }
 
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string AddDocumentId(this string partitionKey, string documentId)
     {
         return partitionKey + ':' + documentId;
@@ -799,6 +818,7 @@ public static class StringExtension
 
     /// <returns>A 32 bit int, or if null or whitespace, 0</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ToInt(this string? str)
     {
         if (str.IsNullOrWhiteSpace())
@@ -811,6 +831,7 @@ public static class StringExtension
     /// Does not check for empty GUID, <see cref="IsValidPopulatedGuid"/> for this.
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidGuid(this string? input)
     {
         return input != null && Guid.TryParse(input, out _);
@@ -820,6 +841,7 @@ public static class StringExtension
     /// Makes sure result is not an empty GUID.
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidPopulatedGuid(this string? input)
     {
         if (input == null)
@@ -837,6 +859,7 @@ public static class StringExtension
     /// Does not check for empty GUID, <see cref="IsValidPopulatedNullableGuid"/> for this.
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidNullableGuid(this string? input)
     {
         return input == null || Guid.TryParse(input, out _);
@@ -846,6 +869,7 @@ public static class StringExtension
     /// Makes sure result is not an empty GUID.
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidPopulatedNullableGuid(this string? input)
     {
         if (input == null)
@@ -866,6 +890,7 @@ public static class StringExtension
     /// <param name="name">The name of the calling member.</param>
     /// <exception cref="ArgumentNullException">Thrown when the input string is null</exception>
     /// <exception cref="ArgumentException">Thrown when the input string is empty.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrowIfNullOrEmpty(this string? input, [CallerMemberName] string? name = null)
     {
         if (input == null)
@@ -882,6 +907,7 @@ public static class StringExtension
     /// <param name="name">The name of the calling member.</param>
     /// <exception cref="ArgumentNullException">Thrown when the input string is null</exception>
     /// <exception cref="ArgumentException">Thrown when the input string is empty or whitespace.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrowIfNullOrWhitespace(this string? input, [CallerMemberName] string? name = null)
     {
         input.ThrowIfNullOrEmpty();
@@ -1076,6 +1102,7 @@ public static class StringExtension
     /// <returns>The file extension without the leading dot, in lowercase. Returns an empty string if the file name does not have an extension.</returns>
     /// <exception cref="ArgumentException">Thrown when the <paramref name="fileName"/> is null or empty.</exception>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToFileExtension(this string fileName)
     {
         fileName.ThrowIfNullOrEmpty();
@@ -1104,5 +1131,45 @@ public static class StringExtension
 
         string fileName = Path.GetFileName(uriObj.AbsolutePath);
         return fileName;
+    }
+
+    /// <summary>
+    /// Converts the specified string to title case (each word capitalized), using spaces to determine word boundaries.
+    /// </summary>
+    /// <param name="str">The string to convert to title case.</param>
+    /// <returns>A string converted to title case where each word is capitalized.</returns>
+    /// <remarks>
+    /// This method uses the current culture's <see cref="TextInfo"/> to perform the conversion.
+    /// If the input string is null or empty, it returns the original string.
+    /// </remarks>
+    [Pure]
+    public static string ToTitleCaseViaSpaces(this string str)
+    {
+        if (string.IsNullOrEmpty(str))
+            return str;
+
+        var result = new char[str.Length];
+        bool newWord = true;
+
+        for (int i = 0; i < str.Length; i++)
+        {
+            char c = str[i];
+            if (char.IsWhiteSpace(c))
+            {
+                newWord = true;
+                result[i] = c;
+            }
+            else if (newWord)
+            {
+                result[i] = char.ToUpper(c, CultureInfo.CurrentCulture);
+                newWord = false;
+            }
+            else
+            {
+                result[i] = char.ToLower(c, CultureInfo.CurrentCulture);
+            }
+        }
+
+        return new string(result);
     }
 }

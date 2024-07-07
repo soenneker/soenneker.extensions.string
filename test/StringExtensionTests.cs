@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
 
@@ -352,7 +351,7 @@ public class StringExtensionTests
     }
 
     [Fact]
-    public async Task ToMemoryStream_should_be_left_open()
+    public async System.Threading.Tasks.Task ToMemoryStream_should_be_left_open()
     {
         const string testStr = "test";
         var result = await testStr.ToMemoryStream();
