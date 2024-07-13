@@ -13,7 +13,7 @@
         <Version Condition="'$(BUILD_VERSION)' != ''">$(BUILD_VERSION)</Version>
         <AssemblyName>Soenneker.Extensions.String</AssemblyName>
         <PackageId>Soenneker.Extensions.String</PackageId>
-        <PackageTags>string extensions c# .net dotnet</PackageTags>
+        <PackageTags>string extensions c# .net dotnet stringextension extension</PackageTags>
         <Copyright>Copyright © 2023-2024 Jake Soenneker</Copyright>
         <Authors>Jake Soenneker</Authors>
         <Company>https://soenneker.com</Company>
