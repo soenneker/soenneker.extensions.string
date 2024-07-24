@@ -365,13 +365,35 @@ public static class StringExtension
     /// Replaces periods with dashes
     /// </summary>
     [Pure]
-    public static string FromPeriodsToDashes(this string value)
+    public static string ToDashesFromPeriods(this string value)
     {
+        if (value.IsNullOrEmpty())
+            return value;
+
         Span<char> result = new char[value.Length];
 
         for (var i = 0; i < value.Length; i++)
         {
             result[i] = value[i] == '.' ? '-' : value[i];
+        }
+
+        return new string(result);
+    }
+
+    /// <summary>
+    /// Replaces whitespace with dashes
+    /// </summary>
+    [Pure]
+    public static string ToDashesFromWhitespace(this string value)
+    {
+        if (value.IsNullOrEmpty())
+            return value;
+
+        Span<char> result = new char[value.Length];
+
+        for (var i = 0; i < value.Length; i++)
+        {
+            result[i] = char.IsWhiteSpace(value[i]) ? '-' : value[i];
         }
 
         return new string(result);
