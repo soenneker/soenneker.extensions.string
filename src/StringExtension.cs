@@ -8,6 +8,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Soenneker.Extensions.ByteArray;
 using Soenneker.Extensions.Char;
@@ -1093,6 +1094,26 @@ public static class StringExtension
         }
 
         return new string(result.Slice(0, index));
+    }
+
+    /// <summary>
+    /// Formats a given phone number into the 'tel:+countryCode' format.
+    /// </summary>
+    /// <param name="phoneNumber">The phone number to be formatted. It can include non-digit characters which will be removed.</param>
+    /// <param name="countryCode">The country code to be prefixed to the phone number. Defaults to 1 for the US.</param>
+    /// <returns>A formatted phone number string in the 'tel:+countryCode' format.</returns>
+    /// <example>
+    /// <code>
+    /// string formattedNumber = "123-456-7890".ToTelFormat(); // Outputs: tel:+11234567890
+    /// string formattedNumberWithCountryCode = "123-456-7890".ToTelFormat(44); // Outputs: tel:+441234567890
+    /// </code>
+    /// </example>
+    [Pure]
+    public static string ToTelFormat(this string phoneNumber, int countryCode = 1)
+    {
+        string cleanedNumber = SanitizePhoneNumber(phoneNumber);
+
+        return $"tel:+{countryCode}{cleanedNumber}";
     }
 
     /// <summary>
