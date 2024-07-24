@@ -1116,6 +1116,21 @@ public static class StringExtension
         return $"tel:+{countryCode}{cleanedNumber}";
     }
 
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static string ToMailToFormat(this string email)
+    {
+        return $"mailto:{email}";
+    }
+
+    [Pure]
+    public static string ToSmsFormat(this string phoneNumber, int countryCode = 1)
+    {
+        string cleanedNumber = SanitizePhoneNumber(phoneNumber);
+
+        return $"sms:+{countryCode}{cleanedNumber}";
+    }
+
     /// <summary>
     /// Extracts the file extension from the given file name.
     /// </summary>
