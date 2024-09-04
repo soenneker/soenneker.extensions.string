@@ -1153,6 +1153,7 @@ public static class StringExtension
         return $"sms:+{countryCode}{cleanedNumber}";
     }
 
+
     /// <summary>
     /// Extracts the file extension from the given file name.
     /// </summary>
@@ -1229,5 +1230,44 @@ public static class StringExtension
         }
 
         return new string(result);
+    }
+
+    /// <summary>
+    /// Compares the current string with the specified string, ignoring case using ordinal comparison.
+    /// </summary>
+    /// <param name="str">The current string instance.</param>
+    /// <param name="value">The string to compare against.</param>
+    /// <returns>True if the strings are equal ignoring case; otherwise, false.</returns>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool EqualsIgnoreCase(this string str, string value)
+    {
+        return str.Equals(value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Determines whether the beginning of the current string matches the specified string, ignoring case using ordinal comparison.
+    /// </summary>
+    /// <param name="str">The current string instance.</param>
+    /// <param name="value">The string to compare against.</param>
+    /// <returns>True if the current string starts with the specified string ignoring case; otherwise, false.</returns>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool StartsWithIgnoreCase(this string str, string value)
+    {
+        return str.StartsWith(value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Determines whether the end of the current string matches the specified string, ignoring case using ordinal comparison.
+    /// </summary>
+    /// <param name="str">The current string instance.</param>
+    /// <param name="value">The string to compare against.</param>
+    /// <returns>True if the current string ends with the specified string ignoring case; otherwise, false.</returns>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool EndsWithIgnoreCase(this string str, string value)
+    {
+        return str.EndsWith(value, StringComparison.OrdinalIgnoreCase);
     }
 }
