@@ -8,7 +8,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Soenneker.Extensions.ByteArray;
 using Soenneker.Extensions.Char;
@@ -37,7 +36,7 @@ public static class StringExtension
         if (value.Length <= length)
             return value;
 
-        var result = value.AsSpan(0, length).ToString();
+        var result = new string(value.AsSpan(0, length));
         return result;
     }
 
@@ -452,7 +451,7 @@ public static class StringExtension
             if (span[i] == ',')
             {
                 // Add the substring between the current start index and the comma
-                list.Add(span.Slice(startIndex, i - startIndex).ToString());
+                list.Add(new string(span.Slice(startIndex, i - startIndex)));
                 startIndex = i + 1;
             }
         }
@@ -460,7 +459,7 @@ public static class StringExtension
         // Add the remaining substring after the last comma
         if (startIndex < span.Length)
         {
-            list.Add(span.Slice(startIndex).ToString());
+            list.Add(new string(span.Slice(startIndex)));
         }
 
         return list;
@@ -546,7 +545,7 @@ public static class StringExtension
     public static string ToShortZipCode(this string value)
     {
         int index = value.IndexOf('-');
-        return index == -1 ? value : value.AsSpan().Slice(0, index).ToString();
+        return index == -1 ? value : new string(value.AsSpan().Slice(0, index));
     }
 
     /// <summary>
@@ -657,7 +656,7 @@ public static class StringExtension
         if (value != null && value.Length > 0 && value[value.Length - 1] == charToRemove)
         {
             ReadOnlySpan<char> span = value.AsSpan();
-            return span.Slice(0, span.Length - 1).ToString();
+            return new string(span.Slice(0, span.Length - 1));
         }
 
         return value;
@@ -676,7 +675,7 @@ public static class StringExtension
         if (value != null && value.Length > 0 && value[0] == charToRemove)
         {
             ReadOnlySpan<char> span = value.AsSpan();
-            return span.Slice(1).ToString();
+            return new string(span.Slice(1));
         }
 
         return value;
@@ -765,8 +764,7 @@ public static class StringExtension
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToStringFromEncoded64(this string str)
     {
-        string result = Convert.FromBase64String(str).ToStr();
-        return result;
+        return Convert.FromBase64String(str).ToStr();
     }
 
     /// <summary>
@@ -781,19 +779,21 @@ public static class StringExtension
 
         var list = new List<string>();
         ReadOnlySpan<char> span = str.AsSpan();
-
         var startIndex = 0;
 
+        // Loop through the span and extract substrings in one pass
         for (var i = 0; i < span.Length; i++)
         {
             if (span[i] == ':')
             {
-                list.Add(span.Slice(startIndex, i - startIndex).ToString());
+                // Add the substring between startIndex and i using new string(span)
+                list.Add(new string(span.Slice(startIndex, i - startIndex)));
                 startIndex = i + 1;
             }
         }
 
-        list.Add(span.Slice(startIndex).ToString());
+        // Add the remaining part after the last colon using new string(span)
+        list.Add(new string(span.Slice(startIndex)));
 
         return list;
     }
@@ -822,32 +822,69 @@ public static class StringExtension
         ReadOnlySpan<char> partitionKey = span.Slice(0, lastColonIndex);
         ReadOnlySpan<char> documentId = span.Slice(lastColonIndex + 1);
 
-        return (partitionKey.ToString(), documentId.ToString());
+        return (new string(partitionKey), new string(documentId));
     }
 
+    /// <summary>
+    /// Concatenates the partition key and document ID with a colon separator using a stack-allocated buffer for optimized performance.
+    /// </summary>
+    /// <param name="documentId">The document ID to concatenate. Cannot be null.</param>
+    /// <param name="partitionKey">The partition key to concatenate. Cannot be null.</param>
+    /// <returns>A concatenated string in the format "partitionKey:documentId" using stack allocation to minimize memory usage and improve performance.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string AddPartitionKey(this string documentId, string partitionKey)
     {
-        return partitionKey + ':' + documentId;
+        int totalLength = partitionKey.Length + 1 + documentId.Length;
+        Span<char> result = stackalloc char[totalLength];
+
+        partitionKey.AsSpan().CopyTo(result);
+        result[partitionKey.Length] = ':';
+        documentId.AsSpan().CopyTo(result.Slice(partitionKey.Length + 1));
+
+        return new string(result);
     }
 
+    /// <summary>
+    /// Concatenates the partition key and document ID with a colon separator using a stack-allocated buffer for optimized performance.
+    /// </summary>
+    /// <param name="partitionKey">The partition key to concatenate. Cannot be null.</param>
+    /// <param name="documentId">The document ID to concatenate. Cannot be null.</param>
+    /// <returns>A concatenated string in the format "partitionKey:documentId" using stack allocation to minimize memory usage and improve performance.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string AddDocumentId(this string partitionKey, string documentId)
     {
-        return partitionKey + ':' + documentId;
+        int totalLength = partitionKey.Length + 1 + documentId.Length;
+        Span<char> result = stackalloc char[totalLength];
+
+        partitionKey.AsSpan().CopyTo(result);
+        result[partitionKey.Length] = ':';
+        documentId.AsSpan().CopyTo(result.Slice(partitionKey.Length + 1));
+
+        return new string(result);
     }
 
-    /// <returns>A 32 bit int, or if null or whitespace, 0</returns>
+    /// <summary>
+    /// Converts the specified string to an integer. If the conversion fails, it returns 0.
+    /// </summary>
+    /// <param name="str">The string to convert to an integer. Can be null.</param>
+    /// <returns>An integer value if the string can be parsed; otherwise, 0.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ToInt(this string? str)
     {
-        if (str.IsNullOrWhiteSpace())
-            return 0;
+        return int.TryParse(str, out int result) ? result : 0;
+    }
 
-        return int.Parse(str);
+    /// <summary>
+    /// Converts the specified string to a boolean. Returns false if the conversion fails.
+    /// </summary>
+    /// <param name="str">The string to convert to a boolean. Can be null.</param>
+    /// <returns><see langword="true"/> if the string can be parsed as a valid boolean and is true; otherwise, <see langword="false"/>.</returns>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool ToBool(this string? str)
+    {
+        return bool.TryParse(str, out bool result) && result;
     }
 
     /// <summary>
@@ -1152,7 +1189,6 @@ public static class StringExtension
 
         return $"sms:+{countryCode}{cleanedNumber}";
     }
-
 
     /// <summary>
     /// Extracts the file extension from the given file name.
