@@ -21,6 +21,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\src\Soenneker.Extensions.String.csproj" />
+        <ProjectReference Include="..\..\src\Soenneker.Extensions.String.csproj" />
     </ItemGroup>
 </Project>
