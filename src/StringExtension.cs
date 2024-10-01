@@ -30,7 +30,6 @@ public static class StringExtension
     /// <param name="length">The maximum length of the truncated string.</param>
     /// <returns>The truncated string.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string Truncate(this string value, int length)
     {
         if (value.Length <= length)
@@ -68,7 +67,6 @@ public static class StringExtension
     /// <param name="value">The string to check.</param>
     /// <returns>True if the string is numeric, otherwise false.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNumeric(this string? value)
     {
         if (value.IsNullOrWhiteSpace())
@@ -83,7 +81,6 @@ public static class StringExtension
     /// <param name="value">The string to convert.</param>
     /// <returns>A <see cref="Nullable{Double}"/> that represents the converted nullable double-precision floating-point number if the conversion succeeds; otherwise, <c>null</c>.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double? ToDouble(this string value)
     {
         if (value.IsNullOrWhiteSpace())
@@ -103,7 +100,6 @@ public static class StringExtension
     /// <param name="value">The string to convert.</param>
     /// <returns>A <see cref="Nullable{Decimal}"/> that represents the converted nullable decimal number if the conversion succeeds; otherwise, <c>null</c>.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static decimal? ToDecimal(this string value)
     {
         if (value.IsNullOrWhiteSpace())
@@ -881,7 +877,6 @@ public static class StringExtension
     /// <param name="str">The string to convert to a boolean. Can be null.</param>
     /// <returns><see langword="true"/> if the string can be parsed as a valid boolean and is true; otherwise, <see langword="false"/>.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ToBool(this string? str)
     {
         return bool.TryParse(str, out bool result) && result;
@@ -891,7 +886,6 @@ public static class StringExtension
     /// Does not check for empty GUID, <see cref="IsValidPopulatedGuid"/> for this.
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidGuid(this string? input)
     {
         return input != null && Guid.TryParse(input, out _);
@@ -901,7 +895,6 @@ public static class StringExtension
     /// Makes sure result is not an empty GUID.
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidPopulatedGuid(this string? input)
     {
         if (input == null)
@@ -919,7 +912,6 @@ public static class StringExtension
     /// Does not check for empty GUID, <see cref="IsValidPopulatedNullableGuid"/> for this.
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidNullableGuid(this string? input)
     {
         return input == null || Guid.TryParse(input, out _);
@@ -929,7 +921,6 @@ public static class StringExtension
     /// Makes sure result is not an empty GUID.
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidPopulatedNullableGuid(this string? input)
     {
         if (input == null)
@@ -950,7 +941,6 @@ public static class StringExtension
     /// <param name="name">The name of the calling member.</param>
     /// <exception cref="ArgumentNullException">Thrown when the input string is null</exception>
     /// <exception cref="ArgumentException">Thrown when the input string is empty.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrowIfNullOrEmpty(this string? input, [CallerMemberName] string? name = null)
     {
         if (input == null)
@@ -967,7 +957,6 @@ public static class StringExtension
     /// <param name="name">The name of the calling member.</param>
     /// <exception cref="ArgumentNullException">Thrown when the input string is null</exception>
     /// <exception cref="ArgumentException">Thrown when the input string is empty or whitespace.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrowIfNullOrWhitespace(this string? input, [CallerMemberName] string? name = null)
     {
         input.ThrowIfNullOrEmpty();
@@ -1176,7 +1165,6 @@ public static class StringExtension
     }
 
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToMailToFormat(this string email)
     {
         return $"mailto:{email}";
@@ -1197,7 +1185,6 @@ public static class StringExtension
     /// <returns>The file extension without the leading dot, in lowercase. Returns an empty string if the file name does not have an extension.</returns>
     /// <exception cref="ArgumentException">Thrown when the <paramref name="fileName"/> is null or empty.</exception>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToFileExtension(this string fileName)
     {
         fileName.ThrowIfNullOrEmpty();
@@ -1288,7 +1275,6 @@ public static class StringExtension
     /// <param name="value">The string to compare against.</param>
     /// <returns>True if the current string starts with the specified string ignoring case; otherwise, false.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool StartsWithIgnoreCase(this string str, string value)
     {
         return str.StartsWith(value, StringComparison.OrdinalIgnoreCase);
@@ -1301,7 +1287,6 @@ public static class StringExtension
     /// <param name="value">The string to compare against.</param>
     /// <returns>True if the current string ends with the specified string ignoring case; otherwise, false.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool EndsWithIgnoreCase(this string str, string value)
     {
         return str.EndsWith(value, StringComparison.OrdinalIgnoreCase);
