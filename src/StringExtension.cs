@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using Soenneker.Extensions.ByteArray;
+using Soenneker.Extensions.Arrays.Bytes;
 using Soenneker.Extensions.Char;
 using Soenneker.Extensions.Stream;
 using Soenneker.Extensions.Task;
