@@ -249,7 +249,7 @@ public static class StringExtension
     /// <param name="comparison">One of the enumeration values that specifies how the strings will be compared.</param>
     /// <returns><c>true</c> if the string contains any of the specified values; otherwise, <c>false</c>.</returns>
     [Pure]
-    public static bool ContainsAny(this string value, List<string> values, StringComparison comparison = StringComparison.Ordinal)
+    public static bool ContainsAny(this string value, IList<string> values, StringComparison comparison = StringComparison.Ordinal)
     {
         for (var i = 0; i < values.Count; i++)
         {
@@ -327,7 +327,6 @@ public static class StringExtension
     /// From Date, with "dd/MM/yyyy" (assuming local)
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime? ToDateTime(this string? date)
     {
         if (date == null)
@@ -342,7 +341,6 @@ public static class StringExtension
     }
 
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime? ToUtcDateTime(this string? value)
     {
         if (value == null)
@@ -465,7 +463,6 @@ public static class StringExtension
     /// Uses UTF8 encoding
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToBytes(this string value)
     {
         return Encoding.UTF8.GetBytes(value);
@@ -478,7 +475,6 @@ public static class StringExtension
     /// <remarks>https://stackoverflow.com/questions/602642/server-urlencode-vs-httputility-urlencode/1148326#1148326</remarks>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? ToEscaped(this string? value)
     {
         if (value == null)
@@ -493,7 +489,6 @@ public static class StringExtension
     /// </summary>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string? ToUnescaped(this string? value)
     {
         if (value == null)
@@ -602,7 +597,6 @@ public static class StringExtension
     /// Shorthand for <see cref="string.IsNullOrEmpty"/>
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
     {
         return string.IsNullOrEmpty(value);
@@ -612,7 +606,6 @@ public static class StringExtension
     /// Shorthand for value == ""/>
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsEmpty(this string? value)
     {
         return value == "";
@@ -623,7 +616,6 @@ public static class StringExtension
     /// </summary>
     /// <remarks>This should be used over the IsPopulated() method on the IEnumerable extension</remarks>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasContent([NotNullWhen(true)] this string? value)
     {
         return !value.IsNullOrEmpty();
@@ -633,7 +625,6 @@ public static class StringExtension
     /// Shorthand for <see cref="string.IsNullOrWhiteSpace"/>
     /// </summary>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value)
     {
         return string.IsNullOrWhiteSpace(value);
@@ -710,7 +701,6 @@ public static class StringExtension
     /// </summary>
     /// <exception cref="ArgumentException">If parsing fails</exception>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum ToEnum<TEnum>(this string value) where TEnum : struct, Enum
     {
         if (value.IsNullOrEmpty())
@@ -720,7 +710,6 @@ public static class StringExtension
     }
 
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TEnum? TryToEnum<TEnum>(this string? value) where TEnum : struct, Enum
     {
         if (value.IsNullOrEmpty())
@@ -757,7 +746,6 @@ public static class StringExtension
     /// </summary>
     /// <remarks>Equivalent to <code>Convert.FromBase64String(str).ToStr()</code></remarks>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToStringFromEncoded64(this string str)
     {
         return Convert.FromBase64String(str).ToStr();
@@ -865,7 +853,6 @@ public static class StringExtension
     /// <param name="str">The string to convert to an integer. Can be null.</param>
     /// <returns>An integer value if the string can be parsed; otherwise, 0.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ToInt(this string? str)
     {
         return int.TryParse(str, out int result) ? result : 0;
@@ -1262,7 +1249,6 @@ public static class StringExtension
     /// <param name="value">The string to compare against.</param>
     /// <returns>True if the strings are equal ignoring case; otherwise, false.</returns>
     [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool EqualsIgnoreCase(this string str, string value)
     {
         return str.Equals(value, StringComparison.OrdinalIgnoreCase);
