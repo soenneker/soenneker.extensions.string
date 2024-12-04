@@ -475,7 +475,7 @@ public static class StringExtension
     /// <param name="value"></param>
     /// <returns></returns>
     [Pure]
-    public static byte[] ToBytesFrom64(this string value)
+    public static byte[] ToBytesFromBase64(this string value)
     {
         return Convert.FromBase64String(value);
     }
