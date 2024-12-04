@@ -460,12 +460,24 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Uses UTF8 encoding
+    /// Equivalent to Encoding.UTF8.GetBytes(value)
     /// </summary>
     [Pure]
     public static byte[] ToBytes(this string value)
     {
         return Encoding.UTF8.GetBytes(value);
+    }
+
+    /// <summary>
+    /// <inheritdoc cref="Convert.FromBase64String(string)"/>
+    /// </summary>
+    /// <remarks>Equivalent to Convert.FromBase64String(value)</remarks>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    [Pure]
+    public static byte[] ToBytesFrom64(this string value)
+    {
+        return Convert.FromBase64String(value);
     }
 
     /// <summary>
