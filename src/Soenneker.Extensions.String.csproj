@@ -43,6 +43,6 @@
         <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.45" />
         <PackageReference Include="Soenneker.Extensions.Task" Version="3.0.69" />
         <PackageReference Include="Soenneker.Utils.Random" Version="3.0.52" />
-        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.51" />
+        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.52" />
     </ItemGroup>
 </Project>
