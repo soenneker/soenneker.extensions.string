@@ -42,7 +42,7 @@
         <PackageReference Include="Soenneker.Extensions.Char" Version="3.0.32" />
         <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.56" />
         <PackageReference Include="Soenneker.Extensions.Task" Version="3.0.81" />
-        <PackageReference Include="Soenneker.Utils.Random" Version="3.0.57" />
+        <PackageReference Include="Soenneker.Utils.Random" Version="3.0.58" />
         <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.56" />
     </ItemGroup>
 </Project>
