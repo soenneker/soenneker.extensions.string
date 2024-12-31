@@ -40,7 +40,7 @@
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
         <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="3.0.22" />
         <PackageReference Include="Soenneker.Extensions.Char" Version="3.0.32" />
-        <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.56" />
+        <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.57" />
         <PackageReference Include="Soenneker.Extensions.Task" Version="3.0.81" />
         <PackageReference Include="Soenneker.Utils.Random" Version="3.0.57" />
         <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.56" />
