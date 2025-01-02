@@ -41,7 +41,7 @@
         <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="3.0.24" />
         <PackageReference Include="Soenneker.Extensions.Char" Version="3.0.34" />
         <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.58" />
-        <PackageReference Include="Soenneker.Extensions.Task" Version="3.0.83" />
+        <PackageReference Include="Soenneker.Extensions.Task" Version="3.0.84" />
         <PackageReference Include="Soenneker.Utils.Random" Version="3.0.59" />
         <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.58" />
     </ItemGroup>
