@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
@@ -8,11 +9,9 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using Soenneker.Extensions.Arrays.Bytes;
 using Soenneker.Extensions.Char;
 using Soenneker.Extensions.Stream;
-using Soenneker.Extensions.Task;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
 
@@ -23,6 +22,8 @@ namespace Soenneker.Extensions.String;
 /// </summary>
 public static class StringExtension
 {
+    private const int _stackallocThreshold = 128;
+
     /// <summary>
     /// Truncates a string to the specified length.
     /// </summary>
@@ -119,7 +120,8 @@ public static class StringExtension
     /// <param name="value">The input string.</param>
     /// <returns>A new string that contains only the digit characters from the original string.</returns>
     [Pure]
-    public static string? RemoveNonDigits([NotNullIfNotNull(nameof(value))] this string? value)
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? RemoveNonDigits(this string? value)
     {
         if (value == null)
             return null;
@@ -127,19 +129,49 @@ public static class StringExtension
         if (value.IsEmpty())
             return value;
 
-        Span<char> result = new char[value.Length];
-        var index = 0;
+        int length = value.Length;
 
-        for (var i = 0; i < value.Length; i++)
+        if (length <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+            int index = ProcessRemoveNonDigits(value, buffer);
+
+            // Return an empty string if no digits were found
+            return index == 0 ? string.Empty : new string(buffer.Slice(0, index));
+        }
+
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
+        int bufferIndex = ProcessRemoveNonDigits(value, bufferSpan);
+
+        // Create the result string
+        string result = bufferIndex == 0 ? string.Empty : new string(bufferSpan.Slice(0, bufferIndex));
+
+        // Return the rented buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return result;
+    }
+
+    // Helper method to process non-digit removal
+    private static int ProcessRemoveNonDigits(string value, Span<char> buffer)
+    {
+        int index = 0;
+
+        for (int i = 0; i < value.Length; i++)
         {
             char c = value[i];
             if (char.IsDigit(c))
             {
-                result[index++] = c;
+                buffer[index++] = c;
             }
         }
 
-        return new string(result.Slice(0, index));
+        return index;
     }
 
     /// <summary>
@@ -154,24 +186,54 @@ public static class StringExtension
         if (value == null)
             return null;
 
-        if (value.IsEmpty())
+        if (value.Length == 0)
             return value;
 
-        Span<char> resultSpan = new char[value.Length];
-        var index = 0;
+        int length = value.Length;
 
-        for (var i = 0; i < value.Length; i++)
+        if (length <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+            int index = ProcessRemoveWhiteSpace(value, buffer);
+
+            // Return the original string if no whitespace was removed
+            return index == length ? value : new string(buffer.Slice(0, index));
+        }
+
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
+        int bufferIndex = ProcessRemoveWhiteSpace(value, bufferSpan);
+
+        // Create the result string
+        string result = bufferIndex == length ? value : new string(bufferSpan.Slice(0, bufferIndex));
+
+        // Return the rented buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return result;
+    }
+
+    // Helper method to process the whitespace removal
+    private static int ProcessRemoveWhiteSpace(string value, Span<char> buffer)
+    {
+        int index = 0;
+
+        for (int i = 0; i < value.Length; i++)
         {
             char c = value[i];
+
             if (!char.IsWhiteSpace(c))
             {
-                resultSpan[index++] = c;
+                buffer[index++] = c;
             }
         }
 
-        return new string(resultSpan.Slice(0, index));
+        return index;
     }
-
 
     /// <summary>
     /// Removes all white-space characters from the string.
@@ -188,19 +250,50 @@ public static class StringExtension
         if (value.IsEmpty())
             return value;
 
-        Span<char> resultSpan = new char[value.Length];
-        var index = 0;
+        int length = value.Length;
 
-        for (var i = 0; i < value.Length; i++)
+        if (length <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+            int index = 0;
+
+            for (int i = 0; i < length; i++)
+            {
+                char c = value[i];
+                if (c != '-')
+                {
+                    buffer[index++] = c;
+                }
+            }
+
+            // Return the original string if no dashes were removed
+            return index == length ? value : new string(buffer.Slice(0, index));
+        }
+
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
+        int bufferIndex = 0;
+
+        for (int i = 0; i < length; i++)
         {
             char c = value[i];
             if (c != '-')
             {
-                resultSpan[index++] = c;
+                bufferSpan[bufferIndex++] = c;
             }
         }
 
-        return new string(resultSpan.Slice(0, index));
+        // Return the original string if no dashes were removed
+        string result = bufferIndex == length ? value : new string(bufferSpan.Slice(0, bufferIndex));
+
+        // Return the buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return result;
     }
 
     /// <summary>
@@ -363,15 +456,38 @@ public static class StringExtension
         if (value.IsNullOrEmpty())
             return value;
 
-        Span<char> result = new char[value.Length];
+        int length = value.Length;
 
-        for (var i = 0; i < value.Length; i++)
+        if (length <= _stackallocThreshold)
         {
-            result[i] = value[i] == '.' ? '-' : value[i];
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                buffer[i] = value[i] == '.' ? '-' : value[i];
+            }
+
+            return new string(buffer);
         }
 
-        return new string(result);
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        for (int i = 0; i < length; i++)
+        {
+            rentedBuffer[i] = value[i] == '.' ? '-' : value[i];
+        }
+
+        string result = new string(rentedBuffer, 0, length);
+
+        // Explicitly return the rented buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return result;
     }
+
 
     /// <summary>
     /// Replaces whitespace with dashes
@@ -382,15 +498,38 @@ public static class StringExtension
         if (value.IsNullOrEmpty())
             return value;
 
-        Span<char> result = new char[value.Length];
+        int length = value.Length;
 
-        for (var i = 0; i < value.Length; i++)
+        if (length <= _stackallocThreshold)
         {
-            result[i] = char.IsWhiteSpace(value[i]) ? '-' : value[i];
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                buffer[i] = char.IsWhiteSpace(value[i]) ? '-' : value[i];
+            }
+
+            return new string(buffer);
         }
 
-        return new string(result);
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        for (int i = 0; i < length; i++)
+        {
+            rentedBuffer[i] = char.IsWhiteSpace(value[i]) ? '-' : value[i];
+        }
+
+        string result = new string(rentedBuffer, 0, length);
+
+        // Explicitly return the rented buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return result;
     }
+
 
     /// <summary>
     /// Converts the first character of the string to lowercase if the string is not null or white-space.
@@ -436,16 +575,23 @@ public static class StringExtension
     [Pure]
     public static List<string> FromCommaSeparatedToList(this string value)
     {
-        var list = new List<string>();
+        if (value.IsNullOrEmpty())
+            return [];
+
+        List<string> list = [];
         ReadOnlySpan<char> span = value.AsSpan();
+
         var startIndex = 0;
 
         for (var i = 0; i < span.Length; i++)
         {
             if (span[i] == ',')
             {
-                // Add the substring between the current start index and the comma
-                list.Add(new string(span.Slice(startIndex, i - startIndex)));
+                if (i > startIndex) // Avoid empty strings from consecutive commas
+                {
+                    list.Add(new string(span.Slice(startIndex, i - startIndex)));
+                }
+
                 startIndex = i + 1;
             }
         }
@@ -520,7 +666,8 @@ public static class StringExtension
         int length = span.Length;
         int index = -1;
 
-        for (var i = 0; i < length - 1; i++)
+        // Find the first occurrence of '\r\n'
+        for (int i = 0; i < length - 1; i++)
         {
             if (span[i] == '\r' && span[i + 1] == '\n')
             {
@@ -529,15 +676,45 @@ public static class StringExtension
             }
         }
 
+        // If no '\r\n' found, return the original string
         if (index == -1)
             return value;
 
-        Span<char> result = new char[length];
-        span.Slice(0, index).CopyTo(result);
-        span.Slice(index + 1).CopyTo(result.Slice(index));
+        // Determine whether to use stackalloc or ArrayPool
+        if (length <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length - 1];
 
-        return new string(result);
+            // Copy the initial part before '\r\n'
+            span.Slice(0, index).CopyTo(buffer);
+
+            // Copy the remaining part after '\r\n'
+            span.Slice(index + 1).CopyTo(buffer.Slice(index));
+
+            return new string(buffer);
+        }
+
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length - 1);
+
+        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length - 1);
+
+        // Copy the initial part before '\r\n'
+        span.Slice(0, index).CopyTo(bufferSpan);
+
+        // Copy the remaining part after '\r\n'
+        span.Slice(index + 1).CopyTo(bufferSpan.Slice(index));
+
+        string result = new string(bufferSpan);
+
+        // Explicitly return the buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return result;
     }
+
 
     /// <summary>
     /// Extracts the short form of a zip code by removing any characters after the hyphen (if present).
@@ -559,23 +736,51 @@ public static class StringExtension
     [Pure]
     public static string Shuffle(this string value)
     {
-        char[] array = value.ToCharArray();
-        int n = array.Length;
+        if (value.IsNullOrEmpty())
+            return value;
 
-        Span<char> span = array;
+        int length = value.Length;
 
+        if (length <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+            value.AsSpan().CopyTo(buffer);
+
+            PerformShuffle(buffer);
+            return new string(buffer);
+        }
+
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        Span<char> spanBuffer = rentedBuffer.AsSpan(0, length);
+        value.AsSpan().CopyTo(spanBuffer);
+
+        PerformShuffle(spanBuffer);
+
+        string result = new string(spanBuffer);
+
+        // Explicitly return the buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return result;
+    }
+
+    private static void PerformShuffle(Span<char> buffer)
+    {
+        int n = buffer.Length;
+
+        // Fisher-Yates Shuffle
         while (n > 1)
         {
             n--;
             int k = RandomUtil.Next(n + 1);
 
-            // ReSharper disable once SwapViaDeconstruction
-            char temp = span[n];
-            span[n] = span[k];
-            span[k] = temp;
+            // Swap elements
+            (buffer[n], buffer[k]) = (buffer[k], buffer[n]);
         }
-
-        return new string(span);
     }
 
     /// <summary>
@@ -586,23 +791,52 @@ public static class StringExtension
     [Pure]
     public static string SecureShuffle(this string value)
     {
-        char[] array = value.ToCharArray();
-        int n = array.Length;
+        if (value.IsNullOrEmpty())
+            return value;
 
-        Span<char> span = array;
+        int length = value.Length;
 
+        if (length <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+            value.AsSpan().CopyTo(buffer);
+
+            PerformSecureShuffle(buffer);
+            return new string(buffer);
+        }
+
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        Span<char> spanBuffer = rentedBuffer.AsSpan(0, length);
+        value.AsSpan().CopyTo(spanBuffer);
+
+        PerformSecureShuffle(spanBuffer);
+
+        string result = new string(spanBuffer);
+
+        // Explicitly return the buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return result;
+    }
+
+
+    private static void PerformSecureShuffle(Span<char> buffer)
+    {
+        int n = buffer.Length;
+
+        // Fisher-Yates Shuffle with a cryptographically secure RNG
         while (n > 1)
         {
             n--;
             int k = RandomNumberGenerator.GetInt32(n + 1);
 
-            // ReSharper disable once SwapViaDeconstruction
-            char temp = span[n];
-            span[n] = span[k];
-            span[k] = temp;
+            // Swap elements
+            (buffer[n], buffer[k]) = (buffer[k], buffer[n]);
         }
-
-        return new string(span);
     }
 
     /// <summary>
@@ -620,7 +854,7 @@ public static class StringExtension
     [Pure]
     public static bool IsEmpty(this string? value)
     {
-        return value == "";
+        return value?.Length == 0;
     }
 
     /// <summary>
@@ -652,10 +886,12 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveTrailingChar(this string? value, char charToRemove)
     {
-        if (value != null && value.Length > 0 && value[value.Length - 1] == charToRemove)
+        if (value.IsNullOrEmpty())
+            return value;
+
+        if (value[^1] == charToRemove)
         {
-            ReadOnlySpan<char> span = value.AsSpan();
-            return new string(span.Slice(0, span.Length - 1));
+            return value[..^1]; // Use string slicing for better readability and performance
         }
 
         return value;
@@ -671,10 +907,12 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveLeadingChar(this string? value, char charToRemove)
     {
-        if (value != null && value.Length > 0 && value[0] == charToRemove)
+        if (value.IsNullOrEmpty())
+            return value;
+
+        if (value[0] == charToRemove)
         {
-            ReadOnlySpan<char> span = value.AsSpan();
-            return new string(span.Slice(1));
+            return value[1..]; // Use string slicing for better performance and readability
         }
 
         return value;
@@ -691,7 +929,7 @@ public static class StringExtension
             return value;
 
         //First to lower case
-        value = value.ToLowerInvariant();
+        value = value.ToLowerInvariantFast();
 
         //Replace spaces
         value = RegexCollection.Spaces().Replace(value, "-");
@@ -740,17 +978,42 @@ public static class StringExtension
     /// </summary>
     /// <remarks>Preferably you should be using Soenneker.Utils.MemoryStreamUtil!</remarks>
     [Pure]
-    public static async ValueTask<MemoryStream> ToMemoryStream(this string str)
+    public static MemoryStream ToMemoryStream(this string str)
     {
-        var stream = new MemoryStream();
+        if (str.IsNullOrEmpty())
+            return new MemoryStream();
 
-        await using (var writer = new StreamWriter(stream, Encoding.UTF8, bufferSize: 1024, leaveOpen: true))
+        // Calculate the byte size of the string when encoded in UTF-8
+        int byteCount = Encoding.UTF8.GetByteCount(str);
+
+        if (byteCount <= _stackallocThreshold)
         {
-            await writer.WriteAsync(str).NoSync();
+            // Use stackalloc for small strings
+            Span<byte> buffer = stackalloc byte[byteCount];
+            Encoding.UTF8.GetBytes(str.AsSpan(), buffer);
+
+            var stream = new MemoryStream(byteCount);
+            stream.Write(buffer);
+            stream.ToStart();
+            return stream;
         }
 
-        stream.ToStart();
-        return stream;
+        // Use ArrayPool for larger strings
+        ArrayPool<byte> pool = ArrayPool<byte>.Shared;
+        byte[] rentedBuffer = pool.Rent(byteCount);
+
+        Span<byte> spanBuffer = rentedBuffer.AsSpan(0, byteCount);
+        Encoding.UTF8.GetBytes(str.AsSpan(), spanBuffer);
+
+        var largeStream = new MemoryStream(byteCount);
+        largeStream.Write(spanBuffer);
+
+        largeStream.ToStart();
+
+        // Explicitly return the buffer to the pool
+        pool.Return(rentedBuffer);
+
+        return largeStream;
     }
 
     /// <summary>
@@ -773,26 +1036,56 @@ public static class StringExtension
         if (str.IsNullOrEmpty())
             return null;
 
-        var list = new List<string>();
-        ReadOnlySpan<char> span = str.AsSpan();
-        var startIndex = 0;
+        int length = str.Length;
 
-        // Loop through the span and extract substrings in one pass
-        for (var i = 0; i < span.Length; i++)
+        if (length <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+            return ParseIds(str.AsSpan(), buffer);
+        }
+
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
+        List<string> result = ParseIds(str.AsSpan(), bufferSpan);
+
+        // Return the buffer to the pool after use
+        pool.Return(rentedBuffer);
+
+        return result;
+    }
+
+    // Helper method to parse IDs into a list
+    private static List<string> ParseIds(ReadOnlySpan<char> span, Span<char> buffer)
+    {
+        var list = new List<string>();
+        int startIndex = 0;
+
+        for (int i = 0; i < span.Length; i++)
         {
             if (span[i] == ':')
             {
-                // Add the substring between startIndex and i using new string(span)
-                list.Add(new string(span.Slice(startIndex, i - startIndex)));
+                int segmentLength = i - startIndex;
+
+                // Copy the current segment to the buffer and add to the list
+                span.Slice(startIndex, segmentLength).CopyTo(buffer.Slice(0, segmentLength));
+                list.Add(new string(buffer.Slice(0, segmentLength)));
+
                 startIndex = i + 1;
             }
         }
 
-        // Add the remaining part after the last colon using new string(span)
-        list.Add(new string(span.Slice(startIndex)));
+        // Handle the last segment after the final colon
+        int remainingLength = span.Length - startIndex;
+        span.Slice(startIndex).CopyTo(buffer.Slice(0, remainingLength));
+        list.Add(new string(buffer.Slice(0, remainingLength)));
 
         return list;
     }
+
 
     /// <summary>
     /// Entity ids are the concatenation of an entity's partitionKey and documentId.
@@ -808,17 +1101,20 @@ public static class StringExtension
     {
         ThrowIfNullOrEmpty(id);
 
-        ReadOnlySpan<char> span = id;
-
+        ReadOnlySpan<char> span = id.AsSpan();
         int lastColonIndex = span.LastIndexOf(':');
 
         if (lastColonIndex == -1)
+        {
+            // No colon found, return the same string for both
             return (id, id);
+        }
 
-        ReadOnlySpan<char> partitionKey = span.Slice(0, lastColonIndex);
-        ReadOnlySpan<char> documentId = span.Slice(lastColonIndex + 1);
+        // Use string constructors directly with spans to minimize allocations
+        var partitionKey = new string(span.Slice(0, lastColonIndex));
+        var documentId = new string(span.Slice(lastColonIndex + 1));
 
-        return (new string(partitionKey), new string(documentId));
+        return (partitionKey, documentId);
     }
 
     /// <summary>
@@ -975,14 +1271,48 @@ public static class StringExtension
         if (input.IsNullOrEmpty())
             return "";
 
-        if (input.Length <= 6)
-            return new string('*', input.Length);
+        int length = input.Length;
 
-        int maskLength = Math.Max(0, input.Length - 3);
-        var maskedPart = new string('*', maskLength);
-        string visiblePart = input.Substring(maskLength, Math.Min(13, input.Length - maskLength));
-        return maskedPart + visiblePart;
+        if (length <= 6)
+            return new string('*', length);
+
+        int maskLength = Math.Max(0, length - 3);
+        int visibleLength = Math.Min(13, length - maskLength);
+
+        if (length <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+
+            // Fill masked part with '*'
+            buffer.Slice(0, maskLength).Fill('*');
+
+            // Copy the visible part
+            input.AsSpan(maskLength, visibleLength).CopyTo(buffer.Slice(maskLength));
+
+            return new string(buffer);
+        }
+
+        // Use ArrayPool for larger strings
+        ArrayPool<char> pool = ArrayPool<char>.Shared;
+        char[] rentedBuffer = pool.Rent(length);
+
+        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
+
+        // Fill masked part with '*'
+        bufferSpan.Slice(0, maskLength).Fill('*');
+
+        // Copy the visible part
+        input.AsSpan(maskLength, visibleLength).CopyTo(bufferSpan.Slice(maskLength));
+
+        string result = new string(bufferSpan.Slice(0, length));
+
+        // Explicitly return the rented buffer
+        pool.Return(rentedBuffer);
+
+        return result;
     }
+
 
     /// <summary>
     /// Converts the input <see cref="string"/> from PascalCase to snake_case.
@@ -996,27 +1326,54 @@ public static class StringExtension
     [Pure]
     public static string ToSnakeCaseFromPascal(this string input)
     {
-        if (string.IsNullOrEmpty(input))
+        if (input.IsNullOrEmpty())
             return input;
 
-        Span<char> outputSpan = new char[input.Length * 2];
-        var outputIndex = 0;
+        // Over-allocate for worst-case scenario: input.Length * 2
+        int maxBufferSize = input.Length * 2;
 
-        for (var i = 0; i < input.Length; i++)
+        if (maxBufferSize <= _stackallocThreshold)
+        {
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[maxBufferSize];
+            int outputIndex = ProcessSnakeCase(input, buffer);
+            return new string(buffer.Slice(0, outputIndex));
+        }
+        else
+        {
+            // Use ArrayPool for large strings
+            ArrayPool<char> pool = ArrayPool<char>.Shared;
+            char[] rentedBuffer = pool.Rent(maxBufferSize);
+            Span<char> buffer = rentedBuffer.AsSpan(0, maxBufferSize);
+
+            int outputIndex = ProcessSnakeCase(input, buffer);
+            string result = new string(buffer.Slice(0, outputIndex));
+
+            // Explicitly return the buffer to the pool
+            pool.Return(rentedBuffer);
+
+            return result;
+        }
+    }
+
+    private static int ProcessSnakeCase(string input, Span<char> buffer)
+    {
+        int outputIndex = 0;
+
+        for (int i = 0; i < input.Length; i++)
         {
             char currentChar = input[i];
 
             // If it's an uppercase letter and not at the beginning, prepend an underscore.
             if (char.IsUpper(currentChar) && i > 0)
             {
-                outputSpan[outputIndex++] = '_';
+                buffer[outputIndex++] = '_';
             }
 
-            outputSpan[outputIndex++] = char.ToLower(currentChar);
+            buffer[outputIndex++] = char.ToLowerInvariant(currentChar);
         }
 
-        // Convert the Span<char> to a string.
-        return new string(outputSpan.Slice(0, outputIndex));
+        return outputIndex;
     }
 
     /// <summary>
@@ -1028,16 +1385,40 @@ public static class StringExtension
     [Pure]
     public static string ToUpperInvariantFast(this string str)
     {
-        ReadOnlySpan<char> charArray = str.AsSpan();
+        if (str.IsNullOrEmpty())
+            return str;
 
-        var result = new char[charArray.Length];
+        int length = str.Length;
 
-        for (var i = 0; i < charArray.Length; i++)
+        if (length <= _stackallocThreshold)
         {
-            result[i] = charArray[i].ToUpperInvariant();
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+            ProcessToUpperInvariant(str, buffer);
+            return new string(buffer);
         }
+        else
+        {
+            // Use ArrayPool for larger strings
+            ArrayPool<char> pool = ArrayPool<char>.Shared;
+            char[] rentedBuffer = pool.Rent(length);
 
-        return new string(result);
+            Span<char> buffer = rentedBuffer.AsSpan(0, length);
+            ProcessToUpperInvariant(str, buffer);
+
+            string result = new string(buffer);
+            pool.Return(rentedBuffer);
+
+            return result;
+        }
+    }
+
+    private static void ProcessToUpperInvariant(string input, Span<char> buffer)
+    {
+        for (int i = 0; i < input.Length; i++)
+        {
+            buffer[i] = char.ToUpperInvariant(input[i]);
+        }
     }
 
     /// <summary>
@@ -1049,16 +1430,40 @@ public static class StringExtension
     [Pure]
     public static string ToLowerInvariantFast(this string str)
     {
-        ReadOnlySpan<char> charArray = str.AsSpan();
+        if (str.IsNullOrEmpty())
+            return str;
 
-        var result = new char[charArray.Length];
+        int length = str.Length;
 
-        for (var i = 0; i < charArray.Length; i++)
+        if (length <= _stackallocThreshold)
         {
-            result[i] = charArray[i].ToLowerInvariant();
+            // Use stackalloc for small strings
+            Span<char> buffer = stackalloc char[length];
+            ProcessToLowerInvariant(str, buffer);
+            return new string(buffer);
         }
+        else
+        {
+            // Use ArrayPool for larger strings
+            ArrayPool<char> pool = ArrayPool<char>.Shared;
+            char[] rentedBuffer = pool.Rent(length);
 
-        return new string(result);
+            Span<char> buffer = rentedBuffer.AsSpan(0, length);
+            ProcessToLowerInvariant(str, buffer);
+
+            var result = new string(buffer);
+            pool.Return(rentedBuffer);
+
+            return result;
+        }
+    }
+
+    private static void ProcessToLowerInvariant(string input, Span<char> buffer)
+    {
+        for (var i = 0; i < input.Length; i++)
+        {
+            buffer[i] = char.ToLowerInvariant(input[i]);
+        }
     }
 
     /// <summary>
@@ -1073,44 +1478,23 @@ public static class StringExtension
     [Pure]
     public static string ToDisplayPhoneNumber(this string str)
     {
-        Span<char> spanNumber = stackalloc char[14]; // Allocate enough space for the formatted number
+        if (str.Length == 10 || (str.Length == 11 && str[0] == '1') || (str.Length == 12 && str.StartsWith("+1")))
+        {
+            Span<char> spanNumber = stackalloc char[14]; // Pre-allocated for the final format
+            int offset = str.Length == 10 ? 0 : str.Length == 11 ? 1 : 2;
 
-        if (str.Length == 10)
-        {
             spanNumber[0] = '(';
-            str.AsSpan(0, 3).CopyTo(spanNumber.Slice(1, 3));
+            str.AsSpan(offset, 3).CopyTo(spanNumber.Slice(1, 3));
             spanNumber[4] = ')';
             spanNumber[5] = ' ';
-            str.AsSpan(3, 3).CopyTo(spanNumber.Slice(6, 3));
+            str.AsSpan(offset + 3, 3).CopyTo(spanNumber.Slice(6, 3));
             spanNumber[9] = '-';
-            str.AsSpan(6, 4).CopyTo(spanNumber.Slice(10, 4));
-        }
-        else if (str.Length == 11 && str[0] == '1')
-        {
-            spanNumber[0] = '(';
-            str.AsSpan(1, 3).CopyTo(spanNumber.Slice(1, 3));
-            spanNumber[4] = ')';
-            spanNumber[5] = ' ';
-            str.AsSpan(4, 3).CopyTo(spanNumber.Slice(6, 3));
-            spanNumber[9] = '-';
-            str.AsSpan(7, 4).CopyTo(spanNumber.Slice(10, 4));
-        }
-        else if (str.Length == 12 && str.StartsWith("+1"))
-        {
-            spanNumber[0] = '(';
-            str.AsSpan(2, 3).CopyTo(spanNumber.Slice(1, 3));
-            spanNumber[4] = ')';
-            spanNumber[5] = ' ';
-            str.AsSpan(5, 3).CopyTo(spanNumber.Slice(6, 3));
-            spanNumber[9] = '-';
-            str.AsSpan(8, 4).CopyTo(spanNumber.Slice(10, 4));
-        }
-        else
-        {
-            throw new ArgumentException("Invalid phone number format. Expected formats: 8887737326, 18887737326, or +18887737326");
+            str.AsSpan(offset + 6, 4).CopyTo(spanNumber.Slice(10, 4));
+
+            return new string(spanNumber);
         }
 
-        return new string(spanNumber);
+        throw new ArgumentException("Invalid phone number format. Expected formats: 8887737326, 18887737326, or +18887737326");
     }
 
     /// <summary>
@@ -1130,7 +1514,7 @@ public static class StringExtension
         input.ThrowIfNullOrWhitespace();
 
         Span<char> result = stackalloc char[input.Length];
-        int index = 0;
+        var index = 0;
 
         foreach (char c in input)
         {
@@ -1226,32 +1610,55 @@ public static class StringExtension
     [Pure]
     public static string ToTitleCaseViaSpaces(this string str)
     {
-        if (string.IsNullOrEmpty(str))
+        if (str.IsNullOrEmpty())
             return str;
 
-        var result = new char[str.Length];
-        bool newWord = true;
+        int length = str.Length;
 
-        for (int i = 0; i < str.Length; i++)
+        if (length <= _stackallocThreshold)
         {
-            char c = str[i];
+            Span<char> buffer = stackalloc char[length];
+            ProcessToTitleCase(str, buffer);
+            return new string(buffer);
+        }
+        else
+        {
+            ArrayPool<char> pool = ArrayPool<char>.Shared;
+            char[] rentedBuffer = pool.Rent(length);
+
+            Span<char> buffer = rentedBuffer.AsSpan(0, length);
+            ProcessToTitleCase(str, buffer);
+
+            var result = new string(buffer);
+            pool.Return(rentedBuffer);
+
+            return result;
+        }
+    }
+
+    private static void ProcessToTitleCase(string input, Span<char> buffer)
+    {
+        var newWord = true;
+
+        for (var i = 0; i < input.Length; i++)
+        {
+            char c = input[i];
+
             if (char.IsWhiteSpace(c))
             {
                 newWord = true;
-                result[i] = c;
+                buffer[i] = c;
             }
             else if (newWord)
             {
-                result[i] = char.ToUpper(c, CultureInfo.CurrentCulture);
+                buffer[i] = char.ToUpperInvariant(c);
                 newWord = false;
             }
             else
             {
-                result[i] = char.ToLower(c, CultureInfo.CurrentCulture);
+                buffer[i] = char.ToLowerInvariant(c);
             }
         }
-
-        return new string(result);
     }
 
     /// <summary>

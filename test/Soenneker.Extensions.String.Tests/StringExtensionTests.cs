@@ -291,7 +291,7 @@ public class StringExtensionTests
     public void ToSnakeCaseFromPascal_WithEmptyInput_ReturnsEmpty()
     {
         // Arrange
-        string input = "";
+        var input = "";
 
         // Act
         string result = input.ToSnakeCaseFromPascal();
@@ -344,17 +344,17 @@ public class StringExtensionTests
     public void ToFileExtension_ShouldReturnExpectedExtension(string input, string expected)
     {
         // Act
-        var result = input.ToFileExtension();
+        string? result = input.ToFileExtension();
 
         // Assert
         result.Should().Be(expected);
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task ToMemoryStream_should_be_left_open()
+    public void ToMemoryStream_should_be_left_open()
     {
         const string testStr = "test";
-        var result = await testStr.ToMemoryStream();
+        var result = testStr.ToMemoryStream();
         result.CanRead.Should().BeTrue();
         result.CanWrite.Should().BeTrue();
         
