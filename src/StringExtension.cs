@@ -5,10 +5,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using Soenneker.Culture.English.US;
 using Soenneker.Extensions.Arrays.Bytes;
 using Soenneker.Extensions.Char;
 using Soenneker.Extensions.Stream;
@@ -36,8 +36,11 @@ public static class StringExtension
         if (value.Length <= length)
             return value;
 
-        var result = new string(value.AsSpan(0, length));
-        return result;
+        // Use String.Create for minimal allocations and control.
+        return string.Create(length, value, static (chars, state) =>
+        {
+            state.AsSpan(0, chars.Length).CopyTo(chars);
+        });
     }
 
     /// <summary>
@@ -73,7 +76,15 @@ public static class StringExtension
         if (value.IsNullOrWhiteSpace())
             return false;
 
-        return value.All(char.IsDigit);
+        for (var i = 0; i < value.Length; i++)
+        {
+            char ch = value[i];
+
+            if (!char.IsDigit(ch))
+                return false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -87,7 +98,7 @@ public static class StringExtension
         if (value.IsNullOrWhiteSpace())
             return null;
 
-        bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-US"), out double result);
+        bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureEnUsCache.CultureInfo, out double result);
 
         if (successful)
             return result;
@@ -106,7 +117,7 @@ public static class StringExtension
         if (value.IsNullOrWhiteSpace())
             return null;
 
-        bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.GetCultureInfo("en-US"), out decimal result);
+        bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureEnUsCache.CultureInfo, out decimal result);
 
         if (successful)
             return result;
@@ -306,9 +317,16 @@ public static class StringExtension
     [Pure]
     public static bool EndsWithAny(this string value, IEnumerable<string> suffixes, StringComparison comparison = StringComparison.Ordinal)
     {
-        foreach (string suffix in suffixes)
+        if (value.IsNullOrEmpty())
+            return false;
+
+        using IEnumerator<string> enumerator = suffixes.GetEnumerator();
+
+        while (enumerator.MoveNext())
         {
-            if (value.EndsWith(suffix, comparison))
+            string suffix = enumerator.Current;
+
+            if (!suffix.IsNullOrEmpty() && value.EndsWith(suffix, comparison))
                 return true;
         }
 
@@ -325,9 +343,16 @@ public static class StringExtension
     [Pure]
     public static bool StartsWithAny(this string value, IEnumerable<string> prefixes, StringComparison comparison = StringComparison.Ordinal)
     {
-        foreach (string prefix in prefixes)
+        if (value.IsNullOrEmpty())
+            return false;
+
+        using IEnumerator<string> enumerator = prefixes.GetEnumerator();
+        while (enumerator.MoveNext())
         {
-            if (value.StartsWith(prefix, comparison))
+            string prefix = enumerator.Current;
+
+            // Skip null or empty prefixes
+            if (!string.IsNullOrEmpty(prefix) && value.StartsWith(prefix, comparison))
                 return true;
         }
 
@@ -407,12 +432,29 @@ public static class StringExtension
     [Pure]
     public static bool EqualsAny(this string value, IEnumerable<string> strings, StringComparison comparison = StringComparison.Ordinal)
     {
-        foreach (string test in strings)
+        if (value.IsNullOrEmpty())
+            return false;
+
+        // Optimize for collections
+        if (strings is ICollection<string> collection)
         {
-            if (value.Equals(test, comparison))
-                return true;
+            if (collection.Count == 0)
+                return false;
+
+            // Consider preprocessing into a HashSet for O(1) lookups if used repeatedly
+            if (comparison == StringComparison.Ordinal && collection is not HashSet<string>)
+            {
+                var set = new HashSet<string>(collection);
+                return set.Contains(value);
+            }
         }
 
+        // Fallback to direct iteration
+        foreach (string test in strings)
+        {
+            if (!string.IsNullOrEmpty(test) && value.Equals(test, comparison))
+                return true;
+        }
         return false;
     }
 
@@ -638,8 +680,7 @@ public static class StringExtension
         if (value == null)
             return null;
 
-        string result = Uri.EscapeDataString(value);
-        return result;
+        return Uri.EscapeDataString(value);
     }
 
     /// <summary>
@@ -652,8 +693,7 @@ public static class StringExtension
         if (value == null)
             return null;
 
-        string result = Uri.UnescapeDataString(value);
-        return result;
+        return Uri.UnescapeDataString(value);
     }
 
     /// <summary>
@@ -1516,8 +1556,10 @@ public static class StringExtension
         Span<char> result = stackalloc char[input.Length];
         var index = 0;
 
-        foreach (char c in input)
+        for (var i = 0; i < input.Length; i++)
         {
+            char c = input[i];
+
             if (char.IsDigit(c) || (c == '+' && index == 0))
             {
                 result[index++] = c;
