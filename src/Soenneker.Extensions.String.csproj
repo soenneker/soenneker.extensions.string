@@ -38,7 +38,7 @@
         <None Include="..\README.md" Pack="true" PackagePath="\" />
         <None Include="..\LICENSE" Pack="true" PackagePath="\" />
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
-        <PackageReference Include="Soenneker.Culture.English.US" Version="3.0.3" />
+        <PackageReference Include="Soenneker.Culture.English.US" Version="3.0.5" />
         <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="3.0.25" />
         <PackageReference Include="Soenneker.Extensions.Char" Version="3.0.38" />
         <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.59" />
