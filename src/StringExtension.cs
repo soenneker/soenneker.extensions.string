@@ -134,7 +134,7 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveNonDigits(this string? value)
     {
-        if (value == null)
+        if (value is null)
             return null;
 
         if (value.IsEmpty())
@@ -194,7 +194,7 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveWhiteSpace(this string? value)
     {
-        if (value == null)
+        if (value is null)
             return null;
 
         if (value.Length == 0)
@@ -255,7 +255,7 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveDashes(this string? value)
     {
-        if (value == null)
+        if (value is null)
             return null;
 
         if (value.IsEmpty())
@@ -387,7 +387,7 @@ public static class StringExtension
     [Pure]
     public static bool ContainsAny(this string value, params char[]? characters)
     {
-        if (value.IsNullOrEmpty() || characters == null || characters.Length == 0)
+        if (value.IsNullOrEmpty() || characters is null || characters.Length == 0)
             return false;
 
         for (var i = 0; i < value.Length; i++)
@@ -459,12 +459,12 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// From Date, with "dd/MM/yyyy" (assuming local)
+    /// From Date, with "dd/MM/yyyy" (assuming local)       
     /// </summary>
     [Pure]
     public static DateTime? ToDateTime(this string? date)
     {
-        if (date == null)
+        if (date is null)
             return null;
 
         bool successful = DateTime.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTime result);
@@ -478,7 +478,7 @@ public static class StringExtension
     [Pure]
     public static DateTime? ToUtcDateTime(this string? value)
     {
-        if (value == null)
+        if (value is null)
             return null;
 
         bool successful = DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out DateTime result);
@@ -677,7 +677,7 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? ToEscaped(this string? value)
     {
-        if (value == null)
+        if (value is null)
             return null;
 
         return Uri.EscapeDataString(value);
@@ -690,7 +690,7 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? ToUnescaped(this string? value)
     {
-        if (value == null)
+        if (value is null)
             return null;
 
         return Uri.UnescapeDataString(value);
@@ -885,7 +885,9 @@ public static class StringExtension
     [Pure]
     public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
     {
-        return string.IsNullOrEmpty(value);
+        // Perform a null check first, then check Length for efficiency
+        // and to ensure minimal instruction execution in the common case.
+        return value is null || value.Length == 0;
     }
 
     /// <summary>
@@ -1232,7 +1234,7 @@ public static class StringExtension
     [Pure]
     public static bool IsValidPopulatedGuid(this string? input)
     {
-        if (input == null)
+        if (input is null)
             return false;
 
         bool success = Guid.TryParse(input, out Guid result);
@@ -1249,7 +1251,7 @@ public static class StringExtension
     [Pure]
     public static bool IsValidNullableGuid(this string? input)
     {
-        return input == null || Guid.TryParse(input, out _);
+        return input is null || Guid.TryParse(input, out _);
     }
 
     /// <summary>
@@ -1258,7 +1260,7 @@ public static class StringExtension
     [Pure]
     public static bool IsValidPopulatedNullableGuid(this string? input)
     {
-        if (input == null)
+        if (input is null)
             return true;
 
         bool success = Guid.TryParse(input, out Guid result);
@@ -1278,7 +1280,7 @@ public static class StringExtension
     /// <exception cref="ArgumentException">Thrown when the input string is empty.</exception>
     public static void ThrowIfNullOrEmpty(this string? input, [CallerMemberName] string? name = null)
     {
-        if (input == null)
+        if (input is null)
             throw new ArgumentNullException(name, "String cannot be null");
 
         if (input.Length == 0)
