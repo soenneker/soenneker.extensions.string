@@ -1225,7 +1225,7 @@ public static class StringExtension
     [Pure]
     public static bool IsValidGuid(this string? input)
     {
-        return input != null && Guid.TryParse(input, out _);
+        return input is not null && Guid.TryParse(input, out _);
     }
 
     /// <summary>
