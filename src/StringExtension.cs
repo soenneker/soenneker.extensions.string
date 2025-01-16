@@ -165,7 +165,6 @@ public static class StringExtension
         return result;
     }
 
-    // Helper method to process non-digit removal
     private static int ProcessRemoveNonDigits(string value, Span<char> buffer)
     {
         var index = 0;
@@ -349,7 +348,7 @@ public static class StringExtension
             string prefix = enumerator.Current;
 
             // Skip null or empty prefixes
-            if (!string.IsNullOrEmpty(prefix) && value.StartsWith(prefix, comparison))
+            if (!prefix.IsNullOrEmpty() && value.StartsWith(prefix, comparison))
                 return true;
         }
 
@@ -449,7 +448,7 @@ public static class StringExtension
         // Fallback to direct iteration
         foreach (string test in strings)
         {
-            if (!string.IsNullOrEmpty(test) && value.Equals(test, comparison))
+            if (!test.IsNullOrEmpty() && value.Equals(test, comparison))
                 return true;
         }
 
@@ -913,7 +912,28 @@ public static class StringExtension
     [Pure]
     public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value)
     {
-        return string.IsNullOrWhiteSpace(value);
+        if (value.IsNullOrEmpty())
+            return true;
+
+        return value.IsWhiteSpace();
+    }
+
+    [Pure]
+    public static bool IsWhiteSpace([NotNullWhen(false)] this string? value)
+    {
+        ReadOnlySpan<char> span = value.AsSpan();
+
+        for (int i = 0; i < span.Length; i++)
+        {
+            char c = span[i];
+
+            if (c != ' ' && c != '\t' && c != '\n' && c != '\r' && c != '\v' && c != '\f')
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1203,8 +1223,49 @@ public static class StringExtension
     [Pure]
     public static int ToInt(this string? str)
     {
-        return int.TryParse(str, out int result) ? result : 0;
+        if (str.IsNullOrEmpty())
+        {
+            return 0; // Fast path for null or empty strings
+        }
+
+        var result = 0;
+        var isNegative = false;
+        var startIndex = 0;
+
+        // Handle signs efficiently
+        char firstChar = str[0];
+        if (firstChar == '-')
+        {
+            isNegative = true;
+            startIndex = 1;
+        }
+        else if (firstChar == '+')
+        {
+            startIndex = 1;
+        }
+
+        // Use Span for efficient string processing
+        ReadOnlySpan<char> span = str.AsSpan(startIndex);
+        foreach (char c in span)
+        {
+            if ((uint) (c - '0') > 9)
+            {
+                return 0; // Non-numeric character found, return default value
+            }
+
+            // Multiplying by 10 using bit manipulation and adding current digit
+            result = (result << 3) + (result << 1) + (c - '0');
+
+            // Overflow detection
+            if (result < 0)
+            {
+                return 0; // Overflow occurred, return default value
+            }
+        }
+
+        return isNegative ? -result : result;
     }
+
 
     /// <summary>
     /// Converts the specified string to a boolean. Returns false if the conversion fails.
@@ -1214,7 +1275,31 @@ public static class StringExtension
     [Pure]
     public static bool ToBool(this string? str)
     {
-        return bool.TryParse(str, out bool result) && result;
+        // Early exit for null or empty strings
+        if (str == null || str.Length < 4 || str.Length > 5)
+            return false;
+
+        // Directly check the specific characters without intermediate storage
+        if (str.Length == 4 &&
+            (str[0] | 0x20) == 't' &&
+            (str[1] | 0x20) == 'r' &&
+            (str[2] | 0x20) == 'u' &&
+            (str[3] | 0x20) == 'e')
+        {
+            return true;
+        }
+
+        if (str.Length == 5 &&
+            (str[0] | 0x20) == 'f' &&
+            (str[1] | 0x20) == 'a' &&
+            (str[2] | 0x20) == 'l' &&
+            (str[3] | 0x20) == 's' &&
+            (str[4] | 0x20) == 'e')
+        {
+            return false;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -1296,7 +1381,7 @@ public static class StringExtension
     {
         input.ThrowIfNullOrEmpty();
 
-        if (input!.Trim().Length == 0)
+        if (input!.TrimFast().Length == 0)
             throw new ArgumentException("String cannot be whitespace", name);
     }
 
@@ -1636,8 +1721,7 @@ public static class StringExtension
         if (!Uri.TryCreate(uri, UriKind.Absolute, out Uri? uriObj))
             return null;
 
-        string fileName = Path.GetFileName(uriObj.AbsolutePath);
-        return fileName;
+        return Path.GetFileName(uriObj.AbsolutePath);
     }
 
     /// <summary>
