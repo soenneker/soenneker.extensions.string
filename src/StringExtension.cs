@@ -1786,4 +1786,64 @@ public static class StringExtension
 
         return false;
     }
+
+    [Pure]
+    public static List<string> SplitFast(string source, char delimiter, int initialBufferSize = 256)
+    {
+        // Early return for empty or null input to avoid unnecessary processing.
+        if (source.IsNullOrEmpty())
+            return [];
+
+        // Rent an array from the pool to use as a buffer.
+        char[] buffer = ArrayPool<char>.Shared.Rent(initialBufferSize);
+        var results = new List<string>(); // Results container.
+
+        try
+        {
+            var bufferIndex = 0; // Tracks the current position in the buffer.
+
+            // Iterate through the source string.
+            for (var i = 0; i < source.Length; i++)
+            {
+                char ch = source[i];
+
+                // When delimiter is found, finalize the current segment.
+                if (ch == delimiter)
+                {
+                    if (bufferIndex > 0) // Avoid empty strings from consecutive delimiters.
+                    {
+                        results.Add(new string(buffer, 0, bufferIndex));
+                        bufferIndex = 0; // Reset buffer for the next segment.
+                    }
+                }
+                else
+                {
+                    // Ensure the buffer is large enough for the current segment.
+                    if (bufferIndex == buffer.Length)
+                    {
+                        // Double the buffer size when needed.
+                        char[] newBuffer = ArrayPool<char>.Shared.Rent(buffer.Length * 2);
+                        Buffer.BlockCopy(buffer, 0, newBuffer, 0, bufferIndex * sizeof(char));
+                        ArrayPool<char>.Shared.Return(buffer);
+                        buffer = newBuffer;
+                    }
+
+                    buffer[bufferIndex++] = ch; // Append character to the buffer.
+                }
+            }
+
+            // Add the last segment if any characters are remaining in the buffer.
+            if (bufferIndex > 0)
+            {
+                results.Add(new string(buffer, 0, bufferIndex));
+            }
+        }
+        finally
+        {
+            // Always return the buffer to the pool to avoid memory leaks.
+            ArrayPool<char>.Shared.Return(buffer);
+        }
+
+        return results;
+    }
 }
