@@ -37,10 +37,7 @@ public static class StringExtension
             return value;
 
         // Use String.Create for minimal allocations and control.
-        return string.Create(length, value, static (chars, state) =>
-        {
-            state.AsSpan(0, chars.Length).CopyTo(chars);
-        });
+        return string.Create(length, value, static (chars, state) => { state.AsSpan(0, chars.Length).CopyTo(chars); });
     }
 
     /// <summary>
@@ -171,9 +168,9 @@ public static class StringExtension
     // Helper method to process non-digit removal
     private static int ProcessRemoveNonDigits(string value, Span<char> buffer)
     {
-        int index = 0;
+        var index = 0;
 
-        for (int i = 0; i < value.Length; i++)
+        for (var i = 0; i < value.Length; i++)
         {
             char c = value[i];
             if (char.IsDigit(c))
@@ -231,9 +228,9 @@ public static class StringExtension
     // Helper method to process the whitespace removal
     private static int ProcessRemoveWhiteSpace(string value, Span<char> buffer)
     {
-        int index = 0;
+        var index = 0;
 
-        for (int i = 0; i < value.Length; i++)
+        for (var i = 0; i < value.Length; i++)
         {
             char c = value[i];
 
@@ -267,9 +264,9 @@ public static class StringExtension
         {
             // Use stackalloc for small strings
             Span<char> buffer = stackalloc char[length];
-            int index = 0;
+            var index = 0;
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 char c = value[i];
                 if (c != '-')
@@ -287,9 +284,9 @@ public static class StringExtension
         char[] rentedBuffer = pool.Rent(length);
 
         Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
-        int bufferIndex = 0;
+        var bufferIndex = 0;
 
-        for (int i = 0; i < length; i++)
+        for (var i = 0; i < length; i++)
         {
             char c = value[i];
             if (c != '-')
@@ -455,6 +452,7 @@ public static class StringExtension
             if (!string.IsNullOrEmpty(test) && value.Equals(test, comparison))
                 return true;
         }
+
         return false;
     }
 
@@ -505,7 +503,7 @@ public static class StringExtension
             // Use stackalloc for small strings
             Span<char> buffer = stackalloc char[length];
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 buffer[i] = value[i] == '.' ? '-' : value[i];
             }
@@ -517,12 +515,12 @@ public static class StringExtension
         ArrayPool<char> pool = ArrayPool<char>.Shared;
         char[] rentedBuffer = pool.Rent(length);
 
-        for (int i = 0; i < length; i++)
+        for (var i = 0; i < length; i++)
         {
             rentedBuffer[i] = value[i] == '.' ? '-' : value[i];
         }
 
-        string result = new string(rentedBuffer, 0, length);
+        var result = new string(rentedBuffer, 0, length);
 
         // Explicitly return the rented buffer to the pool
         pool.Return(rentedBuffer);
@@ -547,7 +545,7 @@ public static class StringExtension
             // Use stackalloc for small strings
             Span<char> buffer = stackalloc char[length];
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 buffer[i] = char.IsWhiteSpace(value[i]) ? '-' : value[i];
             }
@@ -559,12 +557,12 @@ public static class StringExtension
         ArrayPool<char> pool = ArrayPool<char>.Shared;
         char[] rentedBuffer = pool.Rent(length);
 
-        for (int i = 0; i < length; i++)
+        for (var i = 0; i < length; i++)
         {
             rentedBuffer[i] = char.IsWhiteSpace(value[i]) ? '-' : value[i];
         }
 
-        string result = new string(rentedBuffer, 0, length);
+        var result = new string(rentedBuffer, 0, length);
 
         // Explicitly return the rented buffer to the pool
         pool.Return(rentedBuffer);
@@ -707,7 +705,7 @@ public static class StringExtension
         int index = -1;
 
         // Find the first occurrence of '\r\n'
-        for (int i = 0; i < length - 1; i++)
+        for (var i = 0; i < length - 1; i++)
         {
             if (span[i] == '\r' && span[i + 1] == '\n')
             {
@@ -747,7 +745,7 @@ public static class StringExtension
         // Copy the remaining part after '\r\n'
         span.Slice(index + 1).CopyTo(bufferSpan.Slice(index));
 
-        string result = new string(bufferSpan);
+        var result = new string(bufferSpan);
 
         // Explicitly return the buffer to the pool
         pool.Return(rentedBuffer);
@@ -800,7 +798,7 @@ public static class StringExtension
 
         PerformShuffle(spanBuffer);
 
-        string result = new string(spanBuffer);
+        var result = new string(spanBuffer);
 
         // Explicitly return the buffer to the pool
         pool.Return(rentedBuffer);
@@ -855,7 +853,7 @@ public static class StringExtension
 
         PerformSecureShuffle(spanBuffer);
 
-        string result = new string(spanBuffer);
+        var result = new string(spanBuffer);
 
         // Explicitly return the buffer to the pool
         pool.Return(rentedBuffer);
@@ -1104,9 +1102,9 @@ public static class StringExtension
     private static List<string> ParseIds(ReadOnlySpan<char> span, Span<char> buffer)
     {
         var list = new List<string>();
-        int startIndex = 0;
+        var startIndex = 0;
 
-        for (int i = 0; i < span.Length; i++)
+        for (var i = 0; i < span.Length; i++)
         {
             if (span[i] == ':')
             {
@@ -1347,7 +1345,7 @@ public static class StringExtension
         // Copy the visible part
         input.AsSpan(maskLength, visibleLength).CopyTo(bufferSpan.Slice(maskLength));
 
-        string result = new string(bufferSpan.Slice(0, length));
+        var result = new string(bufferSpan.Slice(0, length));
 
         // Explicitly return the rented buffer
         pool.Return(rentedBuffer);
@@ -1389,7 +1387,7 @@ public static class StringExtension
             Span<char> buffer = rentedBuffer.AsSpan(0, maxBufferSize);
 
             int outputIndex = ProcessSnakeCase(input, buffer);
-            string result = new string(buffer.Slice(0, outputIndex));
+            var result = new string(buffer.Slice(0, outputIndex));
 
             // Explicitly return the buffer to the pool
             pool.Return(rentedBuffer);
@@ -1400,9 +1398,9 @@ public static class StringExtension
 
     private static int ProcessSnakeCase(string input, Span<char> buffer)
     {
-        int outputIndex = 0;
+        var outputIndex = 0;
 
-        for (int i = 0; i < input.Length; i++)
+        for (var i = 0; i < input.Length; i++)
         {
             char currentChar = input[i];
 
@@ -1448,7 +1446,7 @@ public static class StringExtension
             Span<char> buffer = rentedBuffer.AsSpan(0, length);
             ProcessToUpperInvariant(str, buffer);
 
-            string result = new string(buffer);
+            var result = new string(buffer);
             pool.Return(rentedBuffer);
 
             return result;
@@ -1457,7 +1455,7 @@ public static class StringExtension
 
     private static void ProcessToUpperInvariant(string input, Span<char> buffer)
     {
-        for (int i = 0; i < input.Length; i++)
+        for (var i = 0; i < input.Length; i++)
         {
             buffer[i] = char.ToUpperInvariant(input[i]);
         }
@@ -1739,5 +1737,53 @@ public static class StringExtension
     public static bool EndsWithIgnoreCase(this string str, string value)
     {
         return str.EndsWith(value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Pure]
+    public static string TrimFast(this string input, ReadOnlySpan<char> trimChars)
+    {
+        if (input.IsNullOrEmpty())
+            return input;
+
+        ReadOnlySpan<char> span = input.AsSpan();
+        var start = 0;
+        int end = span.Length - 1;
+
+        // Optimized trim start
+        while (start <= end && IsTrimChar(span[start], trimChars))
+        {
+            start++;
+        }
+
+        // Optimized trim end
+        while (end >= start && IsTrimChar(span[end], trimChars))
+        {
+            end--;
+        }
+
+        // Handle case where the string is fully trimmed
+        if (start > end)
+            return "";
+
+        // Create substring only when needed
+        return span.Slice(start, end - start + 1).ToString();
+    }
+
+    [Pure]
+    public static string TrimFast(this string input)
+    {
+        return input.TrimFast([' ', '\t', '\r', '\n']);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsTrimChar(char value, ReadOnlySpan<char> trimChars)
+    {
+        foreach (char c in trimChars)
+        {
+            if (value == c)
+                return true;
+        }
+
+        return false;
     }
 }
