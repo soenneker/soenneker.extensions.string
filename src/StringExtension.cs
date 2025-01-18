@@ -11,7 +11,6 @@ using System.Text;
 using Soenneker.Culture.English.US;
 using Soenneker.Extensions.Arrays.Bytes;
 using Soenneker.Extensions.Char;
-using Soenneker.Extensions.Stream;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
 
@@ -30,14 +29,21 @@ public static class StringExtension
     /// <param name="value">The string to truncate.</param>
     /// <param name="length">The maximum length of the truncated string.</param>
     /// <returns>The truncated string.</returns>
-    [Pure]
     public static string Truncate(this string value, int length)
     {
-        if (value.Length <= length)
+        if (string.IsNullOrEmpty(value))
+            return "";
+
+        // If the requested length >= the current length, just return the original (no new allocation).
+        if (length >= value.Length)
             return value;
 
-        // Use String.Create for minimal allocations and control.
-        return string.Create(length, value, static (chars, state) => { state.AsSpan(0, chars.Length).CopyTo(chars); });
+        // If the requested length <= 0, return empty (or you could throw, depending on your needs).
+        if (length <= 0)
+            return "";
+
+        // Allocate a new string from the first 'length' characters.
+        return new string(value.AsSpan(0, length));
     }
 
     /// <summary>
@@ -51,12 +57,12 @@ public static class StringExtension
         if (value.IsNullOrWhiteSpace())
             return false;
 
-        for (var i = 0; i < value.Length; i++)
+        foreach (char c in value)
         {
-            char c = value[i];
-
-            if (!char.IsLetterOrDigit(c))
+            if (!c.IsLetterOrDigitFast())
+            {
                 return false;
+            }
         }
 
         return true;
@@ -73,12 +79,12 @@ public static class StringExtension
         if (value.IsNullOrWhiteSpace())
             return false;
 
-        for (var i = 0; i < value.Length; i++)
+        foreach (char c in value)
         {
-            char ch = value[i];
-
-            if (!char.IsDigit(ch))
+            if (!c.IsDigit())
+            {
                 return false;
+            }
         }
 
         return true;
@@ -131,54 +137,43 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveNonDigits(this string? value)
     {
-        if (value is null)
-            return null;
-
-        if (value.IsEmpty())
+        // Quickly handle null or empty input
+        if (value.IsNullOrEmpty())
             return value;
 
-        int length = value.Length;
+        ReadOnlySpan<char> span = value;
+        int length = span.Length;
 
-        if (length <= _stackallocThreshold)
+        // Allocate a buffer as large as the input length
+        // so we never need to expand or re-allocate.
+        char[] buffer = GC.AllocateUninitializedArray<char>(length);
+        var idx = 0;
+        var foundNonDigit = false;
+
+        // Single pass: copy only the digits
+        for (var i = 0; i < length; i++)
         {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
-            int index = ProcessRemoveNonDigits(value, buffer);
-
-            // Return an empty string if no digits were found
-            return index == 0 ? string.Empty : new string(buffer.Slice(0, index));
-        }
-
-        // Use ArrayPool for larger strings
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
-
-        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
-        int bufferIndex = ProcessRemoveNonDigits(value, bufferSpan);
-
-        // Create the result string
-        string result = bufferIndex == 0 ? string.Empty : new string(bufferSpan.Slice(0, bufferIndex));
-
-        // Return the rented buffer to the pool
-        pool.Return(rentedBuffer);
-
-        return result;
-    }
-
-    private static int ProcessRemoveNonDigits(string value, Span<char> buffer)
-    {
-        var index = 0;
-
-        for (var i = 0; i < value.Length; i++)
-        {
-            char c = value[i];
-            if (char.IsDigit(c))
+            char c = span[i];
+            if (c.IsDigit())
             {
-                buffer[index++] = c;
+                buffer[idx++] = c;
+            }
+            else
+            {
+                foundNonDigit = true;
             }
         }
 
-        return index;
+        // If no non-digit was found, avoid creating a new string
+        if (!foundNonDigit)
+            return value;
+
+        // If everything was removed, return an empty string
+        if (idx == 0)
+            return "";
+
+        // Create the new string from our buffer
+        return new string(buffer, 0, idx);
     }
 
     /// <summary>
@@ -188,58 +183,83 @@ public static class StringExtension
     /// <returns>A new string that contains only the non-white-space characters from the original string.</returns>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
-    public static string? RemoveWhiteSpace(this string? value)
+    public static string? RemoveWhitespace(this string? value)
     {
-        if (value is null)
-            return null;
-
-        if (value.Length == 0)
+        if (value.IsNullOrEmpty())
             return value;
 
-        int length = value.Length;
+        ReadOnlySpan<char> span = value.AsSpan();
+        int length = span.Length;
 
-        if (length <= _stackallocThreshold)
+        // Allocate a buffer as large as the original to ensure we never 
+        // have to expand/reallocate. We'll track how many chars we store.
+        char[] buffer = GC.AllocateUninitializedArray<char>(length);
+        var idx = 0;
+        var foundWhitespace = false;
+
+        for (var i = 0; i < length; i++)
         {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
-            int index = ProcessRemoveWhiteSpace(value, buffer);
-
-            // Return the original string if no whitespace was removed
-            return index == length ? value : new string(buffer.Slice(0, index));
-        }
-
-        // Use ArrayPool for larger strings
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
-
-        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
-        int bufferIndex = ProcessRemoveWhiteSpace(value, bufferSpan);
-
-        // Create the result string
-        string result = bufferIndex == length ? value : new string(bufferSpan.Slice(0, bufferIndex));
-
-        // Return the rented buffer to the pool
-        pool.Return(rentedBuffer);
-
-        return result;
-    }
-
-    // Helper method to process the whitespace removal
-    private static int ProcessRemoveWhiteSpace(string value, Span<char> buffer)
-    {
-        var index = 0;
-
-        for (var i = 0; i < value.Length; i++)
-        {
-            char c = value[i];
-
-            if (!char.IsWhiteSpace(c))
+            char c = span[i];
+            if (c.IsWhiteSpaceFast())
             {
-                buffer[index++] = c;
+                foundWhitespace = true;
+            }
+            else
+            {
+                buffer[idx++] = c;
             }
         }
 
-        return index;
+        // If we never encountered whitespace, we can skip creating a new string.
+        if (!foundWhitespace)
+            return value;
+
+        // If everything was whitespace, return empty.
+        if (idx == 0)
+            return "";
+
+        // Create the new string from our buffer.
+        return new string(buffer, 0, idx);
+    }
+
+    [Pure]
+    [return: NotNullIfNotNull(nameof(value))]
+    public static string? RemoveAllChar(this string? value, char removeChar)
+    {
+        if (value.IsNullOrEmpty())
+            return value;
+
+        ReadOnlySpan<char> span = value.AsSpan();
+        int length = span.Length;
+
+        // Allocate a buffer as large as the original to ensure we never have to reallocate.
+        char[] buffer = GC.AllocateUninitializedArray<char>(length);
+        var idx = 0;
+        var foundAny = false;
+
+        for (var i = 0; i < length; i++)
+        {
+            char c = span[i];
+            if (c == removeChar)
+            {
+                foundAny = true;
+            }
+            else
+            {
+                buffer[idx++] = c;
+            }
+        }
+
+        // If the character was never found, return the original string to avoid an extra allocation.
+        if (!foundAny)
+            return value;
+
+        // If every character was removed, return an empty string.
+        if (idx == 0)
+            return "";
+
+        // Create a new string from the buffer segment we used.
+        return new string(buffer, 0, idx);
     }
 
     /// <summary>
@@ -251,56 +271,7 @@ public static class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveDashes(this string? value)
     {
-        if (value is null)
-            return null;
-
-        if (value.IsEmpty())
-            return value;
-
-        int length = value.Length;
-
-        if (length <= _stackallocThreshold)
-        {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
-            var index = 0;
-
-            for (var i = 0; i < length; i++)
-            {
-                char c = value[i];
-                if (c != '-')
-                {
-                    buffer[index++] = c;
-                }
-            }
-
-            // Return the original string if no dashes were removed
-            return index == length ? value : new string(buffer.Slice(0, index));
-        }
-
-        // Use ArrayPool for larger strings
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
-
-        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
-        var bufferIndex = 0;
-
-        for (var i = 0; i < length; i++)
-        {
-            char c = value[i];
-            if (c != '-')
-            {
-                bufferSpan[bufferIndex++] = c;
-            }
-        }
-
-        // Return the original string if no dashes were removed
-        string result = bufferIndex == length ? value : new string(bufferSpan.Slice(0, bufferIndex));
-
-        // Return the buffer to the pool
-        pool.Return(rentedBuffer);
-
-        return result;
+        return RemoveAllChar(value, '-');
     }
 
     /// <summary>
@@ -428,27 +399,14 @@ public static class StringExtension
     [Pure]
     public static bool EqualsAny(this string value, IEnumerable<string> strings, StringComparison comparison = StringComparison.Ordinal)
     {
-        if (value.IsNullOrEmpty())
+        // If the collection is null, there's nothing to compare.
+        if (strings is null)
             return false;
 
-        // Optimize for collections
-        if (strings is ICollection<string> collection)
+        // Short-circuit on the first match.
+        foreach (string candidate in strings)
         {
-            if (collection.Count == 0)
-                return false;
-
-            // Consider preprocessing into a HashSet for O(1) lookups if used repeatedly
-            if (comparison == StringComparison.Ordinal && collection is not HashSet<string>)
-            {
-                var set = new HashSet<string>(collection);
-                return set.Contains(value);
-            }
-        }
-
-        // Fallback to direct iteration
-        foreach (string test in strings)
-        {
-            if (!test.IsNullOrEmpty() && value.Equals(test, comparison))
+            if (string.Equals(value, candidate, comparison))
                 return true;
         }
 
@@ -526,7 +484,6 @@ public static class StringExtension
 
         return result;
     }
-
 
     /// <summary>
     /// Replaces whitespace with dashes
@@ -648,9 +605,12 @@ public static class StringExtension
     /// Equivalent to Encoding.UTF8.GetBytes(value)
     /// </summary>
     [Pure]
-    public static byte[] ToBytes(this string value)
+    public static byte[] ToBytes(this string str)
     {
-        return Encoding.UTF8.GetBytes(value);
+        if (str.IsNullOrEmpty())
+            return [];
+
+        return Encoding.UTF8.GetBytes(str);
     }
 
     /// <summary>
@@ -662,6 +622,10 @@ public static class StringExtension
     [Pure]
     public static byte[] ToBytesFromBase64(this string value)
     {
+        // Handle null or empty up front.
+        if (value.IsNullOrEmpty())
+            return [];
+
         return Convert.FromBase64String(value);
     }
 
@@ -880,6 +844,7 @@ public static class StringExtension
     /// Shorthand for <see cref="string.IsNullOrEmpty"/>
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
     {
         // Perform a null check first, then check Length for efficiency
@@ -891,6 +856,7 @@ public static class StringExtension
     /// Shorthand for value == ""/>
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsEmpty(this string? value)
     {
         return value?.Length == 0;
@@ -910,6 +876,7 @@ public static class StringExtension
     /// Shorthand for <see cref="string.IsNullOrWhiteSpace"/>
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value)
     {
         if (value.IsNullOrEmpty())
@@ -923,11 +890,11 @@ public static class StringExtension
     {
         ReadOnlySpan<char> span = value.AsSpan();
 
-        for (int i = 0; i < span.Length; i++)
+        for (var i = 0; i < span.Length; i++)
         {
             char c = span[i];
 
-            if (c != ' ' && c != '\t' && c != '\n' && c != '\r' && c != '\v' && c != '\f')
+            if (!c.IsWhiteSpaceFast())
             {
                 return false;
             }
@@ -1040,40 +1007,22 @@ public static class StringExtension
     [Pure]
     public static MemoryStream ToMemoryStream(this string str)
     {
+        // Short-circuit for null/empty to avoid unnecessary allocations.
         if (str.IsNullOrEmpty())
-            return new MemoryStream();
+            return new MemoryStream([]);
 
-        // Calculate the byte size of the string when encoded in UTF-8
+        // Determine how many bytes are needed in UTF-8.
         int byteCount = Encoding.UTF8.GetByteCount(str);
 
-        if (byteCount <= _stackallocThreshold)
-        {
-            // Use stackalloc for small strings
-            Span<byte> buffer = stackalloc byte[byteCount];
-            Encoding.UTF8.GetBytes(str.AsSpan(), buffer);
+        // Allocate one uninitialized array for the exact size needed.
+        byte[] buffer = GC.AllocateUninitializedArray<byte>(byteCount);
 
-            var stream = new MemoryStream(byteCount);
-            stream.Write(buffer);
-            stream.ToStart();
-            return stream;
-        }
+        // Encode directly into the buffer.
+        Encoding.UTF8.GetBytes(str.AsSpan(), buffer.AsSpan());
 
-        // Use ArrayPool for larger strings
-        ArrayPool<byte> pool = ArrayPool<byte>.Shared;
-        byte[] rentedBuffer = pool.Rent(byteCount);
-
-        Span<byte> spanBuffer = rentedBuffer.AsSpan(0, byteCount);
-        Encoding.UTF8.GetBytes(str.AsSpan(), spanBuffer);
-
-        var largeStream = new MemoryStream(byteCount);
-        largeStream.Write(spanBuffer);
-
-        largeStream.ToStart();
-
-        // Explicitly return the buffer to the pool
-        pool.Return(rentedBuffer);
-
-        return largeStream;
+        // Wrap the buffer in a read-only MemoryStream.
+        // The 'publiclyVisible' parameter (last bool) allows direct array access via GetBuffer(); 
+        return new MemoryStream(buffer, 0, buffer.Length);
     }
 
     /// <summary>
@@ -1083,7 +1032,7 @@ public static class StringExtension
     [Pure]
     public static string ToStringFromEncoded64(this string str)
     {
-        return Convert.FromBase64String(str).ToStr();
+        return str.ToBytesFromBase64().ToStr();
     }
 
     /// <summary>
@@ -1223,49 +1172,97 @@ public static class StringExtension
     [Pure]
     public static int ToInt(this string? str)
     {
+        // Return 0 on null or empty
         if (str.IsNullOrEmpty())
+            return 0;
+
+        ReadOnlySpan<char> span = str.AsSpan();
+
+        // 1) Skip leading whitespace
+        var pos = 0;
+        while (pos < span.Length && span[pos].IsWhiteSpaceFast())
+            pos++;
+
+        // If we've reached end, no digits => return 0
+        if (pos >= span.Length)
+            return 0;
+
+        // 2) Check for sign
+        var negative = false;
+        char c = span[pos];
+        if (c == '-')
         {
-            return 0; // Fast path for null or empty strings
+            negative = true;
+            pos++;
+        }
+        else if (c == '+')
+        {
+            pos++;
         }
 
-        var result = 0;
-        var isNegative = false;
-        var startIndex = 0;
+        long result = 0;
+        int startDigitPos = pos;
 
-        // Handle signs efficiently
-        char firstChar = str[0];
-        if (firstChar == '-')
+        // 3) Parse digits
+        for (; pos < span.Length; pos++)
         {
-            isNegative = true;
-            startIndex = 1;
-        }
-        else if (firstChar == '+')
-        {
-            startIndex = 1;
-        }
-
-        // Use Span for efficient string processing
-        ReadOnlySpan<char> span = str.AsSpan(startIndex);
-        foreach (char c in span)
-        {
-            if ((uint) (c - '0') > 9)
+            c = span[pos];
+            // Fast check for ASCII digit
+            if ((uint) (c - '0') <= 9)
             {
-                return 0; // Non-numeric character found, return default value
+                int digit = c - '0';
+
+                // Quick overflow check vs. int range
+                // If already beyond int.MaxValue, return 0
+                if (result > int.MaxValue)
+                    return 0;
+
+                result = result * 10 + digit;
             }
-
-            // Multiplying by 10 using bit manipulation and adding current digit
-            result = (result << 3) + (result << 1) + (c - '0');
-
-            // Overflow detection
-            if (result < 0)
+            else
             {
-                return 0; // Overflow occurred, return default value
+                // Possibly trailing whitespace -> skip it
+                if (c.IsWhiteSpaceFast())
+                {
+                    pos++;
+                    // Skip all remaining whitespace
+                    while (pos < span.Length && span[pos].IsWhiteSpaceFast())
+                        pos++;
+                    // If there's anything else after trailing whitespace => invalid
+                    return pos >= span.Length ? FinalizeResult(result, negative) : 0;
+                }
+
+                // Non‐digit and non‐whitespace => invalid
+                return 0;
             }
         }
 
-        return isNegative ? -result : result;
+        // If no digits were parsed => return 0
+        if (pos == startDigitPos)
+            return 0;
+
+        return FinalizeResult(result, negative);
     }
 
+    // Applies sign and checks final overflow (still no exceptions)
+    private static int FinalizeResult(long value, bool negative)
+    {
+        // If negative => valid range is up to 2147483648 for absolute value
+        if (negative)
+        {
+            // If above 2147483648 => out of range for int.MinValue
+            if (value > 2147483648)
+                return 0;
+            return (int) -value; // e.g. 2147483648 => -2147483648
+        }
+        else
+        {
+            // If above 2147483647 => out of range
+            if (value > 2147483647)
+                return 0;
+            return (int) value;
+        }
+    }
 
     /// <summary>
     /// Converts the specified string to a boolean. Returns false if the conversion fails.
@@ -1490,12 +1487,12 @@ public static class StringExtension
             char currentChar = input[i];
 
             // If it's an uppercase letter and not at the beginning, prepend an underscore.
-            if (char.IsUpper(currentChar) && i > 0)
+            if (currentChar.IsUpperFast() && i > 0)
             {
                 buffer[outputIndex++] = '_';
             }
 
-            buffer[outputIndex++] = char.ToLowerInvariant(currentChar);
+            buffer[outputIndex++] = currentChar.ToLowerInvariant();
         }
 
         return outputIndex;
@@ -1510,40 +1507,34 @@ public static class StringExtension
     [Pure]
     public static string ToUpperInvariantFast(this string str)
     {
-        if (str.IsNullOrEmpty())
-            return str;
+        int length = str.Length; // safe after above check
 
-        int length = str.Length;
+        if (length is 0)
+            return "";
 
-        if (length <= _stackallocThreshold)
+        // One-pass creation of the uppercase string
+        // Minimizes allocations by writing directly into the final string memory.
+        return string.Create(length, str, static (span, s) =>
         {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
-            ProcessToUpperInvariant(str, buffer);
-            return new string(buffer);
-        }
-        else
-        {
-            // Use ArrayPool for larger strings
-            ArrayPool<char> pool = ArrayPool<char>.Shared;
-            char[] rentedBuffer = pool.Rent(length);
+            for (var i = 0; i < span.Length; i++)
+            {
+                char c = s[i];
 
-            Span<char> buffer = rentedBuffer.AsSpan(0, length);
-            ProcessToUpperInvariant(str, buffer);
-
-            var result = new string(buffer);
-            pool.Return(rentedBuffer);
-
-            return result;
-        }
-    }
-
-    private static void ProcessToUpperInvariant(string input, Span<char> buffer)
-    {
-        for (var i = 0; i < input.Length; i++)
-        {
-            buffer[i] = char.ToUpperInvariant(input[i]);
-        }
+                // Fast path for ASCII a–z:
+                //   if ((uint)(c - 'a') <= ('z' - 'a'))
+                // means: if c >= 'a' && c <= 'z'
+                if ((uint) (c - 'a') <= 'z' - 'a')
+                {
+                    span[i] = (char) (c - 32); // c & ~0x20
+                }
+                else
+                {
+                    // Fallback for all non-ASCII-lowercase characters
+                    // (including already uppercase ASCII, digits, symbols, Unicode, etc.)
+                    span[i] = c.ToUpperInvariant();
+                }
+            }
+        });
     }
 
     /// <summary>
@@ -1555,40 +1546,34 @@ public static class StringExtension
     [Pure]
     public static string ToLowerInvariantFast(this string str)
     {
-        if (str.IsNullOrEmpty())
-            return str;
-
         int length = str.Length;
 
-        if (length <= _stackallocThreshold)
+        if (length is 0)
+            return "";
+
+        // Single-allocation approach
+        return string.Create(length, str, static (span, s) =>
         {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
-            ProcessToLowerInvariant(str, buffer);
-            return new string(buffer);
-        }
-        else
-        {
-            // Use ArrayPool for larger strings
-            ArrayPool<char> pool = ArrayPool<char>.Shared;
-            char[] rentedBuffer = pool.Rent(length);
+            for (var i = 0; i < span.Length; i++)
+            {
+                char c = s[i];
 
-            Span<char> buffer = rentedBuffer.AsSpan(0, length);
-            ProcessToLowerInvariant(str, buffer);
-
-            var result = new string(buffer);
-            pool.Return(rentedBuffer);
-
-            return result;
-        }
-    }
-
-    private static void ProcessToLowerInvariant(string input, Span<char> buffer)
-    {
-        for (var i = 0; i < input.Length; i++)
-        {
-            buffer[i] = char.ToLowerInvariant(input[i]);
-        }
+                // Fast path for ASCII A–Z:
+                // (uint)(c - 'A') <= ('Z' - 'A') 
+                // is the JIT-optimized check for c >= 'A' && c <= 'Z'.
+                if ((uint) (c - 'A') <= 'Z' - 'A')
+                {
+                    // Convert uppercase ASCII to lowercase by adding 32 (0x20).
+                    span[i] = (char) (c + 32);
+                }
+                else
+                {
+                    // Fallback for non-ASCII A–Z characters (including already lowercase ASCII,
+                    // digits, symbols, Unicode, etc.).
+                    span[i] = c.ToLowerInvariant();
+                }
+            }
+        });
     }
 
     /// <summary>
@@ -1645,7 +1630,7 @@ public static class StringExtension
         {
             char c = input[i];
 
-            if (char.IsDigit(c) || (c == '+' && index == 0))
+            if (c.IsDigit() || (c == '+' && index == 0))
             {
                 result[index++] = c;
             }
@@ -1770,19 +1755,19 @@ public static class StringExtension
         {
             char c = input[i];
 
-            if (char.IsWhiteSpace(c))
+            if (c.IsWhiteSpaceFast())
             {
                 newWord = true;
                 buffer[i] = c;
             }
             else if (newWord)
             {
-                buffer[i] = char.ToUpperInvariant(c);
+                buffer[i] = c.ToUpperInvariant();
                 newWord = false;
             }
             else
             {
-                buffer[i] = char.ToLowerInvariant(c);
+                buffer[i] = c.ToLowerInvariant();
             }
         }
     }
@@ -1872,62 +1857,40 @@ public static class StringExtension
     }
 
     [Pure]
-    public static List<string> SplitFast(string source, char delimiter, int initialBufferSize = 256)
+    public static List<string> SplitFast(this string source, char delimiter)
     {
-        // Early return for empty or null input to avoid unnecessary processing.
+        // If null or empty, return an empty list (no allocations for substrings).
         if (source.IsNullOrEmpty())
             return [];
 
-        // Rent an array from the pool to use as a buffer.
-        char[] buffer = ArrayPool<char>.Shared.Rent(initialBufferSize);
-        var results = new List<string>(); // Results container.
+        ReadOnlySpan<char> span = source.AsSpan();
+        List<string>? result = null;
+        int start = 0;
 
-        try
+        // Single pass: each time we find 'delimiter', we cut out a substring.
+        for (int i = 0; i < span.Length; i++)
         {
-            var bufferIndex = 0; // Tracks the current position in the buffer.
-
-            // Iterate through the source string.
-            for (var i = 0; i < source.Length; i++)
+            if (span[i] == delimiter)
             {
-                char ch = source[i];
+                // Only allocate the list upon finding the first delimiter.
+                result ??= [];
 
-                // When delimiter is found, finalize the current segment.
-                if (ch == delimiter)
-                {
-                    if (bufferIndex > 0) // Avoid empty strings from consecutive delimiters.
-                    {
-                        results.Add(new string(buffer, 0, bufferIndex));
-                        bufferIndex = 0; // Reset buffer for the next segment.
-                    }
-                }
-                else
-                {
-                    // Ensure the buffer is large enough for the current segment.
-                    if (bufferIndex == buffer.Length)
-                    {
-                        // Double the buffer size when needed.
-                        char[] newBuffer = ArrayPool<char>.Shared.Rent(buffer.Length * 2);
-                        Buffer.BlockCopy(buffer, 0, newBuffer, 0, bufferIndex * sizeof(char));
-                        ArrayPool<char>.Shared.Return(buffer);
-                        buffer = newBuffer;
-                    }
-
-                    buffer[bufferIndex++] = ch; // Append character to the buffer.
-                }
-            }
-
-            // Add the last segment if any characters are remaining in the buffer.
-            if (bufferIndex > 0)
-            {
-                results.Add(new string(buffer, 0, bufferIndex));
+                // Create a new string for the substring [start..i).
+                // This is one allocation per segment.
+                result.Add(new string(span.Slice(start, i - start)));
+                start = i + 1;
             }
         }
-        finally
-        {
-            // Always return the buffer to the pool to avoid memory leaks.
-            ArrayPool<char>.Shared.Return(buffer);
-        }
 
-        return results;
+        // No delimiter found => return a List<string> with the original string,
+        // so we avoid allocating a substring.
+        if (result is null)
+            return [source];
+
+        // Add the final substring from the last delimiter up to the end.
+        // (This handles the case where the delimiter wasn't the last char.)
+        result.Add(new string(span.Slice(start)));
+
+        return result;
     }
 }
