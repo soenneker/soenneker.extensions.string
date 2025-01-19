@@ -265,10 +265,10 @@ public class StringExtensionTests
     [InlineData("SomePascalString", "some_pascal_string")]
     [InlineData("AnotherExample", "another_example")]
     [InlineData("XMLHttpRequest", "x_m_l_http_request")]
-    public void ToSnakeCaseFromPascal_ConvertsPascalCaseToSnakeCase(string input, string expectedOutput)
+    public void ToSnakeCaseFromPascal_ConvertsPascalCaseToSnakeCase(string? input, string? expectedOutput)
     {
         // Act
-        string result = input.ToSnakeCaseFromPascal();
+        string result = input!.ToSnakeCaseFromPascal();
 
         // Assert
         result.Should().Be(expectedOutput);

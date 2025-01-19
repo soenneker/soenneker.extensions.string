@@ -67,4 +67,28 @@ public class BenchmarkRunner : BenchmarkTest
 
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
+
+  //  [Fact]
+    public async ValueTask ToDashesFromWhitespace()
+    {
+        Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToDashesFromWhitespaceBenchmark>(DefaultConf);
+
+        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+    }
+
+  //  [Fact]
+    public async ValueTask ToSplitId()
+    {
+        Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToSplitIdBenchmark>(DefaultConf);
+
+        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+    }
+
+    //[Fact]
+    public async ValueTask ToBool()
+    {
+        Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToBoolBenchmark>(DefaultConf);
+
+        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+    }
 }

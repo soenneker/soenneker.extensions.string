@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <Platforms>AnyCPU</Platforms>
         <NoWarn>$(NoWarn);1591</NoWarn>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <PropertyGroup>

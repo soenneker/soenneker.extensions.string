@@ -6,7 +6,7 @@ namespace Soenneker.Extensions.String.Tests.Benchmarks;
 [MemoryDiagnoser]
 public class ToBytesBenchmark
 {
-    private string _value;
+    private string _value = null!;
 
     [GlobalSetup]
     public void Setup()

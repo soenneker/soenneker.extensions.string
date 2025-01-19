@@ -11,6 +11,7 @@ using System.Text;
 using Soenneker.Culture.English.US;
 using Soenneker.Extensions.Arrays.Bytes;
 using Soenneker.Extensions.Char;
+using Soenneker.Extensions.Stream;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
 
@@ -31,7 +32,7 @@ public static class StringExtension
     /// <returns>The truncated string.</returns>
     public static string Truncate(this string value, int length)
     {
-        if (string.IsNullOrEmpty(value))
+        if (value.IsNullOrEmpty())
             return "";
 
         // If the requested length >= the current length, just return the original (no new allocation).
@@ -57,12 +58,10 @@ public static class StringExtension
         if (value.IsNullOrWhiteSpace())
             return false;
 
-        foreach (char c in value)
+        for (var i = 0; i < value.Length; i++)
         {
-            if (!c.IsLetterOrDigitFast())
-            {
+            if (!value[i].IsLetterOrDigitFast())
                 return false;
-            }
         }
 
         return true;
@@ -79,12 +78,10 @@ public static class StringExtension
         if (value.IsNullOrWhiteSpace())
             return false;
 
-        foreach (char c in value)
+        for (var i = 0; i < value.Length; i++)
         {
-            if (!c.IsDigit())
-            {
+            if (!value[i].IsDigit())
                 return false;
-            }
         }
 
         return true;
@@ -359,9 +356,7 @@ public static class StringExtension
 
         for (var i = 0; i < value.Length; i++)
         {
-            char character = value[i];
-
-            if (Array.IndexOf(characters, character) >= 0)
+            if (Array.IndexOf(characters, value[i]) >= 0)
                 return true;
         }
 
@@ -450,37 +445,30 @@ public static class StringExtension
     [Pure]
     public static string ToDashesFromPeriods(this string value)
     {
-        if (value.IsNullOrEmpty())
-            return value;
-
         int length = value.Length;
 
-        if (length <= _stackallocThreshold)
-        {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
+        if (length == 0)
+            return "";
 
-            for (var i = 0; i < length; i++)
+        // Allocate the result string upfront
+        var result = new string('\0', length);
+
+        // Pin both source and destination
+        unsafe
+        {
+            fixed (char* src = value)
+            fixed (char* dst = result)
             {
-                buffer[i] = value[i] == '.' ? '-' : value[i];
+                for (var i = 0; i < length; i++)
+                {
+                    char c = src[i];
+                    if (c == '.')
+                        c = '-';
+
+                    dst[i] = c;
+                }
             }
-
-            return new string(buffer);
         }
-
-        // Use ArrayPool for larger strings
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
-
-        for (var i = 0; i < length; i++)
-        {
-            rentedBuffer[i] = value[i] == '.' ? '-' : value[i];
-        }
-
-        var result = new string(rentedBuffer, 0, length);
-
-        // Explicitly return the rented buffer to the pool
-        pool.Return(rentedBuffer);
 
         return result;
     }
@@ -491,41 +479,32 @@ public static class StringExtension
     [Pure]
     public static string ToDashesFromWhitespace(this string value)
     {
-        if (value.IsNullOrEmpty())
-            return value;
-
         int length = value.Length;
 
-        if (length <= _stackallocThreshold)
-        {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
+        if (length == 0)
+            return "";
 
-            for (var i = 0; i < length; i++)
+        // Allocate the result string upfront
+        var result = new string('\0', length);
+
+        // Pin both source and destination
+        unsafe
+        {
+            fixed (char* src = value)
+            fixed (char* dst = result)
             {
-                buffer[i] = char.IsWhiteSpace(value[i]) ? '-' : value[i];
+                for (var i = 0; i < length; i++)
+                {
+                    char c = src[i];
+                    if (c.IsWhiteSpaceFast())
+                        c = '-';
+                    dst[i] = c;
+                }
             }
-
-            return new string(buffer);
         }
-
-        // Use ArrayPool for larger strings
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
-
-        for (var i = 0; i < length; i++)
-        {
-            rentedBuffer[i] = char.IsWhiteSpace(value[i]) ? '-' : value[i];
-        }
-
-        var result = new string(rentedBuffer, 0, length);
-
-        // Explicitly return the rented buffer to the pool
-        pool.Return(rentedBuffer);
 
         return result;
     }
-
 
     /// <summary>
     /// Converts the first character of the string to lowercase if the string is not null or white-space.
@@ -631,7 +610,7 @@ public static class StringExtension
 
     /// <summary>
     /// Use whenever a URL needs to be encoded etc.
-    /// Utilizes <see cref="Uri.EscapeDataString"/>
+    /// Utilizes Uri.EscapeDataString
     /// </summary>
     /// <remarks>https://stackoverflow.com/questions/602642/server-urlencode-vs-httputility-urlencode/1148326#1148326</remarks>
     [Pure]
@@ -645,7 +624,7 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Utilizes <see cref="Uri.UnescapeDataString"/>
+    /// Utilizes Uri.UnescapeDataString
     /// </summary>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
@@ -1022,7 +1001,9 @@ public static class StringExtension
 
         // Wrap the buffer in a read-only MemoryStream.
         // The 'publiclyVisible' parameter (last bool) allows direct array access via GetBuffer(); 
-        return new MemoryStream(buffer, 0, buffer.Length);
+        var stream = new MemoryStream(buffer, 0, buffer.Length);
+        stream.ToStart();
+        return stream;
     }
 
     /// <summary>
@@ -1095,7 +1076,6 @@ public static class StringExtension
         return list;
     }
 
-
     /// <summary>
     /// Entity ids are the concatenation of an entity's partitionKey and documentId.
     /// If an entity's partitionKey and documentId are the same, both return values will be equivalent to documentId. <para/>
@@ -1110,20 +1090,39 @@ public static class StringExtension
     {
         ThrowIfNullOrEmpty(id);
 
-        ReadOnlySpan<char> span = id.AsSpan();
-        int lastColonIndex = span.LastIndexOf(':');
-
-        if (lastColonIndex == -1)
+        for (int i = id.Length - 1; i >= 0; i--)
         {
-            // No colon found, return the same string for both
-            return (id, id);
+            if (id[i] == ':')
+            {
+                // If colon is at position 0, partition key is empty
+                if (i == 0)
+                {
+                    // Edge case: If the string is just ":" or ":something"
+                    string documentId = (id.Length == 1)
+                        ? ""
+                        : new string(id.AsSpan(1));
+                    return ("", documentId);
+                }
+
+                // If colon is at the very end, document ID is empty
+                if (i == id.Length - 1)
+                {
+                    // Edge case: If the string is "something:"
+                    string partitionKey = id.Length == 1
+                        ? "" // means ":", but that was caught above
+                        : new string(id.AsSpan(0, id.Length - 1));
+                    return (partitionKey, "");
+                }
+
+                // General case: partitionKey:documentId
+                var partitionKeyGeneral = new string(id.AsSpan(0, i));
+                var documentIdGeneral = new string(id.AsSpan(i + 1));
+                return (partitionKeyGeneral, documentIdGeneral);
+            }
         }
 
-        // Use string constructors directly with spans to minimize allocations
-        var partitionKey = new string(span.Slice(0, lastColonIndex));
-        var documentId = new string(span.Slice(lastColonIndex + 1));
-
-        return (partitionKey, documentId);
+        // No colon found
+        return (id, id);
     }
 
     /// <summary>
@@ -1272,31 +1271,7 @@ public static class StringExtension
     [Pure]
     public static bool ToBool(this string? str)
     {
-        // Early exit for null or empty strings
-        if (str == null || str.Length < 4 || str.Length > 5)
-            return false;
-
-        // Directly check the specific characters without intermediate storage
-        if (str.Length == 4 &&
-            (str[0] | 0x20) == 't' &&
-            (str[1] | 0x20) == 'r' &&
-            (str[2] | 0x20) == 'u' &&
-            (str[3] | 0x20) == 'e')
-        {
-            return true;
-        }
-
-        if (str.Length == 5 &&
-            (str[0] | 0x20) == 'f' &&
-            (str[1] | 0x20) == 'a' &&
-            (str[2] | 0x20) == 'l' &&
-            (str[3] | 0x20) == 's' &&
-            (str[4] | 0x20) == 'e')
-        {
-            return false;
-        }
-
-        return false;
+        return Convert.ToBoolean(str);
     }
 
     /// <summary>
@@ -1865,10 +1840,10 @@ public static class StringExtension
 
         ReadOnlySpan<char> span = source.AsSpan();
         List<string>? result = null;
-        int start = 0;
+        var start = 0;
 
         // Single pass: each time we find 'delimiter', we cut out a substring.
-        for (int i = 0; i < span.Length; i++)
+        for (var i = 0; i < span.Length; i++)
         {
             if (span[i] == delimiter)
             {

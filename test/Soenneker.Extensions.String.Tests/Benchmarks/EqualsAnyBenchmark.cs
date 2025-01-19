@@ -7,8 +7,8 @@ namespace Soenneker.Extensions.String.Tests.Benchmarks;
 [MemoryDiagnoser]
 public class EqualsAnyBenchmark
 {
-    private List<string> _strings;
-    private string _value;
+    private List<string> _strings = null!;
+    private string _value = null!;
 
     /// <summary>
     /// The number of strings in the collection to benchmark with.

@@ -1,28 +1,22 @@
-﻿using System;
 using BenchmarkDotNet.Attributes;
 
 namespace Soenneker.Extensions.String.Tests.Benchmarks;
 
 [MemoryDiagnoser]
-public class ToIntBenchmark
+public class ToSplitIdBenchmark
 {
     private string _value = null!;
 
     [GlobalSetup]
     public void Setup()
     {
-        _value = "3435343";
+        _value = "arst:blarsta";
     }
 
     [Benchmark(Baseline =true)]
-    public int ToIntBuiltIn()
+    public (string, string) ToSplitIdBuiltIn()
     {
-        return Convert.ToInt32(_value);
+        return _value.ToSplitId();
     }
 
-    [Benchmark]
-    public int ToInt()
-    {
-        return _value.ToInt();
-    }
 }
