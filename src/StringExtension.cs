@@ -803,7 +803,6 @@ public static class StringExtension
         return result;
     }
 
-
     private static void PerformSecureShuffle(Span<char> buffer)
     {
         int n = buffer.Length;
@@ -1353,7 +1352,7 @@ public static class StringExtension
     {
         input.ThrowIfNullOrEmpty();
 
-        if (input!.TrimFast().Length == 0)
+        if (input.IsWhiteSpace())
             throw new ArgumentException("String cannot be whitespace", name);
     }
 
@@ -1781,91 +1780,5 @@ public static class StringExtension
     public static bool EndsWithIgnoreCase(this string str, string value)
     {
         return str.EndsWith(value, StringComparison.OrdinalIgnoreCase);
-    }
-
-    [Pure]
-    public static string TrimFast(this string input, ReadOnlySpan<char> trimChars)
-    {
-        if (input.IsNullOrEmpty())
-            return input;
-
-        ReadOnlySpan<char> span = input.AsSpan();
-        var start = 0;
-        int end = span.Length - 1;
-
-        // Optimized trim start
-        while (start <= end && IsTrimChar(span[start], trimChars))
-        {
-            start++;
-        }
-
-        // Optimized trim end
-        while (end >= start && IsTrimChar(span[end], trimChars))
-        {
-            end--;
-        }
-
-        // Handle case where the string is fully trimmed
-        if (start > end)
-            return "";
-
-        // Create substring only when needed
-        return span.Slice(start, end - start + 1).ToString();
-    }
-
-    [Pure]
-    public static string TrimFast(this string input)
-    {
-        return input.TrimFast([' ', '\t', '\r', '\n']);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsTrimChar(char value, ReadOnlySpan<char> trimChars)
-    {
-        foreach (char c in trimChars)
-        {
-            if (value == c)
-                return true;
-        }
-
-        return false;
-    }
-
-    [Pure]
-    public static List<string> SplitFast(this string source, char delimiter)
-    {
-        // If null or empty, return an empty list (no allocations for substrings).
-        if (source.IsNullOrEmpty())
-            return [];
-
-        ReadOnlySpan<char> span = source.AsSpan();
-        List<string>? result = null;
-        var start = 0;
-
-        // Single pass: each time we find 'delimiter', we cut out a substring.
-        for (var i = 0; i < span.Length; i++)
-        {
-            if (span[i] == delimiter)
-            {
-                // Only allocate the list upon finding the first delimiter.
-                result ??= [];
-
-                // Create a new string for the substring [start..i).
-                // This is one allocation per segment.
-                result.Add(new string(span.Slice(start, i - start)));
-                start = i + 1;
-            }
-        }
-
-        // No delimiter found => return a List<string> with the original string,
-        // so we avoid allocating a substring.
-        if (result is null)
-            return [source];
-
-        // Add the final substring from the last delimiter up to the end.
-        // (This handles the case where the delimiter wasn't the last char.)
-        result.Add(new string(span.Slice(start)));
-
-        return result;
     }
 }

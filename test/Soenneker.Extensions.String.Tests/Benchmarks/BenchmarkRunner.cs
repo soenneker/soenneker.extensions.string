@@ -28,7 +28,7 @@ public class BenchmarkRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-  //  [Fact]
+    [Fact]
     public async ValueTask ToInt()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToIntBenchmark>(DefaultConf);
