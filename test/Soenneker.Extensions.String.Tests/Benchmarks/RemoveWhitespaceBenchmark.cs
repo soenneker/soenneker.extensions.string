@@ -4,7 +4,7 @@ using BenchmarkDotNet.Attributes;
 namespace Soenneker.Extensions.String.Tests.Benchmarks;
 
 [MemoryDiagnoser]
-public class RemoveWhitespaceBenchmark
+public class RemoveWhiteSpaceBenchmark
 {
     private string _value = null!;
 
@@ -15,14 +15,14 @@ public class RemoveWhitespaceBenchmark
     }
 
     [Benchmark(Baseline =true)]
-    public string RemoveWhitespaceBuiltIn()
+    public string RemoveWhiteSpaceBuiltIn()
     {
         return string.Concat(_value.Where(c => !char.IsWhiteSpace(c)));
     }
 
     [Benchmark]
-    public string RemoveWhitespace()
+    public string RemoveWhiteSpace()
     {
-        return _value.RemoveWhitespace();
+        return _value.RemoveWhiteSpace();
     }
 }

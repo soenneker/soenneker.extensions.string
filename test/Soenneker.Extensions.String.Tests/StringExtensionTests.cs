@@ -70,7 +70,7 @@ public class StringExtensionTests
     [InlineData("arst23k@3 3 test", "arst23k@33test")]
     public void RemoveWhitespace_should_remove_white_space(string? test, string? expected)
     {
-        string? result = test.RemoveWhitespace();
+        string? result = test.RemoveWhiteSpace();
 
         result.Should().Be(expected);
     }

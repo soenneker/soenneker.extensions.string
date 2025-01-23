@@ -180,7 +180,7 @@ public static class StringExtension
     /// <returns>A new string that contains only the non-white-space characters from the original string.</returns>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
-    public static string? RemoveWhitespace(this string? value)
+    public static string? RemoveWhiteSpace(this string? value)
     {
         if (value.IsNullOrEmpty())
             return value;

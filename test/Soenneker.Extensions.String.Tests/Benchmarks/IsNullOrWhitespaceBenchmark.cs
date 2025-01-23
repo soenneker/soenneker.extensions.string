@@ -3,7 +3,7 @@
 namespace Soenneker.Extensions.String.Tests.Benchmarks;
 
 [MemoryDiagnoser]
-public class IsNullOrWhitespaceBenchmark
+public class IsNullOrWhiteSpaceBenchmark
 {
     private string _value;
 

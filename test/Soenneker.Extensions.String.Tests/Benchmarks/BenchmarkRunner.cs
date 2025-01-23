@@ -39,7 +39,7 @@ public class BenchmarkRunner : BenchmarkTest
    // [Fact]
     public async ValueTask RemoveWhitespace()
     {
-        Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<RemoveWhitespaceBenchmark>(DefaultConf);
+        Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<RemoveWhiteSpaceBenchmark>(DefaultConf);
 
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
