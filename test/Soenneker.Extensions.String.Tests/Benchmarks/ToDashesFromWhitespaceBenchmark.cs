@@ -3,7 +3,7 @@ using BenchmarkDotNet.Attributes;
 namespace Soenneker.Extensions.String.Tests.Benchmarks;
 
 [MemoryDiagnoser]
-public class ToDashesFromWhitespaceBenchmark
+public class ToDashesFromWhiteSpaceBenchmark
 {
     private string _value = null!;
 
@@ -14,14 +14,14 @@ public class ToDashesFromWhitespaceBenchmark
     }
 
     [Benchmark(Baseline = true)]
-    public string ToDashesFromWhitespaceBuiltIn()
+    public string ToDashesFromWhiteSpaceBuiltIn()
     {
         return _value.Replace(" ", "-");
     }
 
     [Benchmark]
-    public string ToDashesFromWhitespace()
+    public string ToDashesFromWhiteSpace()
     {
-        return _value.ToDashesFromWhitespace();
+        return _value.ToDashesFromWhiteSpace();
     }
 }

@@ -192,14 +192,14 @@ public static class StringExtension
         // have to expand/reallocate. We'll track how many chars we store.
         char[] buffer = GC.AllocateUninitializedArray<char>(length);
         var idx = 0;
-        var foundWhitespace = false;
+        var foundWhiteSpace = false;
 
         for (var i = 0; i < length; i++)
         {
             char c = span[i];
             if (c.IsWhiteSpaceFast())
             {
-                foundWhitespace = true;
+                foundWhiteSpace = true;
             }
             else
             {
@@ -208,7 +208,7 @@ public static class StringExtension
         }
 
         // If we never encountered whitespace, we can skip creating a new string.
-        if (!foundWhitespace)
+        if (!foundWhiteSpace)
             return value;
 
         // If everything was whitespace, return empty.
@@ -477,7 +477,7 @@ public static class StringExtension
     /// Replaces whitespace with dashes
     /// </summary>
     [Pure]
-    public static string ToDashesFromWhitespace(this string value)
+    public static string ToDashesFromWhiteSpace(this string value)
     {
         int length = value.Length;
 
@@ -694,7 +694,6 @@ public static class StringExtension
 
         return result;
     }
-
 
     /// <summary>
     /// Extracts the short form of a zip code by removing any characters after the hyphen (if present).
@@ -1348,7 +1347,7 @@ public static class StringExtension
     /// <param name="name">The name of the calling member.</param>
     /// <exception cref="ArgumentNullException">Thrown when the input string is null</exception>
     /// <exception cref="ArgumentException">Thrown when the input string is empty or whitespace.</exception>
-    public static void ThrowIfNullOrWhitespace(this string? input, [CallerMemberName] string? name = null)
+    public static void ThrowIfNullOrWhiteSpace(this string? input, [CallerMemberName] string? name = null)
     {
         input.ThrowIfNullOrEmpty();
 
@@ -1595,7 +1594,7 @@ public static class StringExtension
     [Pure]
     public static string SanitizePhoneNumber(this string input)
     {
-        input.ThrowIfNullOrWhitespace();
+        input.ThrowIfNullOrWhiteSpace();
 
         Span<char> result = stackalloc char[input.Length];
         var index = 0;

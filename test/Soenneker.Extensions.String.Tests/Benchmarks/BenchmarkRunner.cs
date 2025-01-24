@@ -28,7 +28,7 @@ public class BenchmarkRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-    [Fact]
+   // [Fact]
     public async ValueTask ToInt()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToIntBenchmark>(DefaultConf);
@@ -37,7 +37,7 @@ public class BenchmarkRunner : BenchmarkTest
     }
 
    // [Fact]
-    public async ValueTask RemoveWhitespace()
+    public async ValueTask RemoveWhiteSpace()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<RemoveWhiteSpaceBenchmark>(DefaultConf);
 
@@ -69,9 +69,9 @@ public class BenchmarkRunner : BenchmarkTest
     }
 
   //  [Fact]
-    public async ValueTask ToDashesFromWhitespace()
+    public async ValueTask ToDashesFromWhiteSpace()
     {
-        Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToDashesFromWhitespaceBenchmark>(DefaultConf);
+        Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToDashesFromWhiteSpaceBenchmark>(DefaultConf);
 
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
