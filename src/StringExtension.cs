@@ -1657,7 +1657,7 @@ public static class StringExtension
     {
         fileName.ThrowIfNullOrEmpty();
 
-        return Path.GetExtension(fileName).TrimStart('.').ToLower();
+        return Path.GetExtension(fileName).TrimStart('.').ToLowerInvariantFast();
     }
 
     /// <summary>
