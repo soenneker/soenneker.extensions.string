@@ -1657,7 +1657,15 @@ public static class StringExtension
     {
         fileName.ThrowIfNullOrEmpty();
 
-        return Path.GetExtension(fileName).TrimStart('.').ToLowerInvariantFast();
+        string extension = Path.GetExtension(fileName);
+
+        if (extension.IsNullOrEmpty())
+            return "";
+
+        // Remove the leading '.' and convert to lower case
+        return extension[0] == '.'
+            ? extension.AsSpan(1).ToString().ToLowerInvariantFast()
+            : extension.ToLowerInvariantFast();
     }
 
     /// <summary>
