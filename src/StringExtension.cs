@@ -8,7 +8,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
-using Soenneker.Culture.English.US;
 using Soenneker.Extensions.Arrays.Bytes;
 using Soenneker.Extensions.Char;
 using Soenneker.Extensions.Stream;
@@ -20,7 +19,7 @@ namespace Soenneker.Extensions.String;
 /// <summary>
 /// A collection of useful string extension methods
 /// </summary>
-public static class StringExtension
+public static partial class StringExtension
 {
     private const int _stackallocThreshold = 128;
 
@@ -65,64 +64,6 @@ public static class StringExtension
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// Determines whether a string contains only numeric characters.
-    /// </summary>
-    /// <param name="value">The string to check.</param>
-    /// <returns>True if the string is numeric, otherwise false.</returns>
-    [Pure]
-    public static bool IsNumeric(this string? value)
-    {
-        if (value.IsNullOrWhiteSpace())
-            return false;
-
-        for (var i = 0; i < value.Length; i++)
-        {
-            if (!value[i].IsDigit())
-                return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Converts the string representation of a number to its nullable double-precision floating-point equivalent.
-    /// </summary>
-    /// <param name="value">The string to convert.</param>
-    /// <returns>A <see cref="Nullable{Double}"/> that represents the converted nullable double-precision floating-point number if the conversion succeeds; otherwise, <c>null</c>.</returns>
-    [Pure]
-    public static double? ToDouble(this string value)
-    {
-        if (value.IsNullOrWhiteSpace())
-            return null;
-
-        bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureEnUsCache.CultureInfo, out double result);
-
-        if (successful)
-            return result;
-
-        return null;
-    }
-
-    /// <summary>
-    /// Converts the string representation of a number to its nullable decimal equivalent.
-    /// </summary>
-    /// <param name="value">The string to convert.</param>
-    /// <returns>A <see cref="Nullable{Decimal}"/> that represents the converted nullable decimal number if the conversion succeeds; otherwise, <c>null</c>.</returns>
-    [Pure]
-    public static decimal? ToDecimal(this string value)
-    {
-        if (value.IsNullOrWhiteSpace())
-            return null;
-
-        bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureEnUsCache.CultureInfo, out decimal result);
-
-        if (successful)
-            return result;
-
-        return null;
     }
 
     /// <summary>
@@ -504,42 +445,6 @@ public static class StringExtension
         }
 
         return result;
-    }
-
-    /// <summary>
-    /// Converts the first character of the string to lowercase if the string is not null or white-space.
-    /// </summary>
-    /// <param name="value">The string to convert.</param>
-    /// <returns>The string with the first character converted to lowercase, or the original string if it is null or white-space.</returns>
-    [Pure]
-    [return: NotNullIfNotNull(nameof(value))]
-    public static string? ToLowerFirstChar(this string? value)
-    {
-        if (value.IsNullOrWhiteSpace())
-            return value;
-
-        if (value.Length == 1)
-            return value[0].ToLowerInvariant().ToString();
-
-        return value[0].ToLowerInvariant() + value[1..];
-    }
-
-    /// <summary>
-    /// Converts the first character of the string to uppercase if the string is not null or white-space.
-    /// </summary>
-    /// <param name="value">The string to convert.</param>
-    /// <returns>The string with the first character converted to uppercase, or the original string if it is null or white-space.</returns>
-    [Pure]
-    [return: NotNullIfNotNull(nameof(value))]
-    public static string? ToUpperFirstChar(this string? value)
-    {
-        if (value.IsNullOrWhiteSpace())
-            return value;
-
-        if (value.Length == 1)
-            return value[0].ToUpperInvariant().ToString();
-
-        return value[0].ToUpperInvariant() + value[1..];
     }
 
     /// <summary>
@@ -1162,106 +1067,6 @@ public static class StringExtension
     }
 
     /// <summary>
-    /// Converts the specified string to an integer. If the conversion fails, it returns 0.
-    /// </summary>
-    /// <param name="str">The string to convert to an integer. Can be null.</param>
-    /// <returns>An integer value if the string can be parsed; otherwise, 0.</returns>
-    [Pure]
-    public static int ToInt(this string? str)
-    {
-        // Return 0 on null or empty
-        if (str.IsNullOrEmpty())
-            return 0;
-
-        ReadOnlySpan<char> span = str.AsSpan();
-
-        // 1) Skip leading whitespace
-        var pos = 0;
-        while (pos < span.Length && span[pos].IsWhiteSpaceFast())
-            pos++;
-
-        // If we've reached end, no digits => return 0
-        if (pos >= span.Length)
-            return 0;
-
-        // 2) Check for sign
-        var negative = false;
-        char c = span[pos];
-        if (c == '-')
-        {
-            negative = true;
-            pos++;
-        }
-        else if (c == '+')
-        {
-            pos++;
-        }
-
-        long result = 0;
-        int startDigitPos = pos;
-
-        // 3) Parse digits
-        for (; pos < span.Length; pos++)
-        {
-            c = span[pos];
-            // Fast check for ASCII digit
-            if ((uint) (c - '0') <= 9)
-            {
-                int digit = c - '0';
-
-                // Quick overflow check vs. int range
-                // If already beyond int.MaxValue, return 0
-                if (result > int.MaxValue)
-                    return 0;
-
-                result = result * 10 + digit;
-            }
-            else
-            {
-                // Possibly trailing whitespace -> skip it
-                if (c.IsWhiteSpaceFast())
-                {
-                    pos++;
-                    // Skip all remaining whitespace
-                    while (pos < span.Length && span[pos].IsWhiteSpaceFast())
-                        pos++;
-                    // If there's anything else after trailing whitespace => invalid
-                    return pos >= span.Length ? FinalizeResult(result, negative) : 0;
-                }
-
-                // Non‐digit and non‐whitespace => invalid
-                return 0;
-            }
-        }
-
-        // If no digits were parsed => return 0
-        if (pos == startDigitPos)
-            return 0;
-
-        return FinalizeResult(result, negative);
-    }
-
-    // Applies sign and checks final overflow (still no exceptions)
-    private static int FinalizeResult(long value, bool negative)
-    {
-        // If negative => valid range is up to 2147483648 for absolute value
-        if (negative)
-        {
-            // If above 2147483648 => out of range for int.MinValue
-            if (value > 2147483648)
-                return 0;
-            return (int) -value; // e.g. 2147483648 => -2147483648
-        }
-        else
-        {
-            // If above 2147483647 => out of range
-            if (value > 2147483647)
-                return 0;
-            return (int) value;
-        }
-    }
-
-    /// <summary>
     /// Converts the specified string to a boolean. Returns false if the conversion fails.
     /// </summary>
     /// <param name="str">The string to convert to a boolean. Can be null.</param>
@@ -1270,58 +1075,6 @@ public static class StringExtension
     public static bool ToBool(this string? str)
     {
         return Convert.ToBoolean(str);
-    }
-
-    /// <summary>
-    /// Does not check for empty GUID, <see cref="IsValidPopulatedGuid"/> for this.
-    /// </summary>
-    [Pure]
-    public static bool IsValidGuid(this string? input)
-    {
-        return input is not null && Guid.TryParse(input, out _);
-    }
-
-    /// <summary>
-    /// Makes sure result is not an empty GUID.
-    /// </summary>
-    [Pure]
-    public static bool IsValidPopulatedGuid(this string? input)
-    {
-        if (input is null)
-            return false;
-
-        bool success = Guid.TryParse(input, out Guid result);
-
-        if (success && result != Guid.Empty)
-            return true;
-
-        return false;
-    }
-
-    /// <summary>
-    /// Does not check for empty GUID, <see cref="IsValidPopulatedNullableGuid"/> for this.
-    /// </summary>
-    [Pure]
-    public static bool IsValidNullableGuid(this string? input)
-    {
-        return input is null || Guid.TryParse(input, out _);
-    }
-
-    /// <summary>
-    /// Makes sure result is not an empty GUID.
-    /// </summary>
-    [Pure]
-    public static bool IsValidPopulatedNullableGuid(this string? input)
-    {
-        if (input is null)
-            return true;
-
-        bool success = Guid.TryParse(input, out Guid result);
-
-        if (success && result != Guid.Empty)
-            return true;
-
-        return false;
     }
 
     /// <summary>
@@ -1406,147 +1159,6 @@ public static class StringExtension
         pool.Return(rentedBuffer);
 
         return result;
-    }
-
-
-    /// <summary>
-    /// Converts the input <see cref="string"/> from PascalCase to snake_case.
-    /// </summary>
-    /// <param name="input">The string to convert.</param>
-    /// <returns>A new string in snake_case format.</returns>
-    /// <remarks>
-    /// This method converts a PascalCase string to snake_case format.
-    /// For example, "PascalCaseString" will be converted to "pascal_case_string".
-    /// </remarks>
-    [Pure]
-    public static string ToSnakeCaseFromPascal(this string input)
-    {
-        if (input.IsNullOrEmpty())
-            return input;
-
-        // Over-allocate for worst-case scenario: input.Length * 2
-        int maxBufferSize = input.Length * 2;
-
-        if (maxBufferSize <= _stackallocThreshold)
-        {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[maxBufferSize];
-            int outputIndex = ProcessSnakeCase(input, buffer);
-            return new string(buffer.Slice(0, outputIndex));
-        }
-        else
-        {
-            // Use ArrayPool for large strings
-            ArrayPool<char> pool = ArrayPool<char>.Shared;
-            char[] rentedBuffer = pool.Rent(maxBufferSize);
-            Span<char> buffer = rentedBuffer.AsSpan(0, maxBufferSize);
-
-            int outputIndex = ProcessSnakeCase(input, buffer);
-            var result = new string(buffer.Slice(0, outputIndex));
-
-            // Explicitly return the buffer to the pool
-            pool.Return(rentedBuffer);
-
-            return result;
-        }
-    }
-
-    private static int ProcessSnakeCase(string input, Span<char> buffer)
-    {
-        var outputIndex = 0;
-
-        for (var i = 0; i < input.Length; i++)
-        {
-            char currentChar = input[i];
-
-            // If it's an uppercase letter and not at the beginning, prepend an underscore.
-            if (currentChar.IsUpperFast() && i > 0)
-            {
-                buffer[outputIndex++] = '_';
-            }
-
-            buffer[outputIndex++] = currentChar.ToLowerInvariant();
-        }
-
-        return outputIndex;
-    }
-
-    /// <summary>
-    /// Converts each character in the current <see cref="string"/> to its uppercase invariant equivalent.
-    /// </summary>
-    /// <param name="str">The string to convert.</param>
-    /// <returns>A new string in which each character has been converted to its uppercase invariant equivalent.</returns>
-    /// <remarks>This method is similar to <see cref="string.ToUpperInvariant"/> but operates on each character individually.</remarks>
-    [Pure]
-    public static string ToUpperInvariantFast(this string str)
-    {
-        int length = str.Length; // safe after above check
-
-        if (length is 0)
-            return "";
-
-        // One-pass creation of the uppercase string
-        // Minimizes allocations by writing directly into the final string memory.
-        return string.Create(length, str, static (span, s) =>
-        {
-            for (var i = 0; i < span.Length; i++)
-            {
-                char c = s[i];
-
-                // Fast path for ASCII a–z:
-                //   if ((uint)(c - 'a') <= ('z' - 'a'))
-                // means: if c >= 'a' && c <= 'z'
-                if ((uint) (c - 'a') <= 'z' - 'a')
-                {
-                    span[i] = (char) (c - 32); // c & ~0x20
-                }
-                else
-                {
-                    // Fallback for all non-ASCII-lowercase characters
-                    // (including already uppercase ASCII, digits, symbols, Unicode, etc.)
-                    span[i] = c.ToUpperInvariant();
-                }
-            }
-        });
-    }
-
-    /// <summary>
-    /// Converts each character in the current <see cref="string"/> to its lowercase invariant equivalent.
-    /// </summary>
-    /// <param name="str">The string to convert.</param>
-    /// <returns>A new string in which each character has been converted to its lowercase invariant equivalent.</returns>
-    /// <remarks>This method is similar to <see cref="string.ToLowerInvariant"/> but operates on each character individually.</remarks>
-    [Pure]
-    public static string ToLowerInvariantFast(this string str)
-    {
-        int length = str.Length;
-
-        if (length is 0)
-            return "";
-
-        // Single-allocation approach
-        return string.Create(length, str, static (span, s) =>
-        {
-            for (var i = 0; i < span.Length; i++)
-            {
-                char c = s[i];
-
-                // Fast path for ASCII A–Z:
-                // (uint)(c - 'A') <= ('Z' - 'A') 
-                // is the JIT-optimized check for c >= 'A' && c <= 'Z'.
-                if ((uint) (c - 'A') <= 'Z' - 'A')
-                {
-                    // Convert uppercase ASCII to lowercase by adding 32 (0x20).
-                    span[i] = (char) (c + 32);
-                }
-                else
-                {
-                    // Fallback for non-ASCII A–Z characters (including already lowercase ASCII,
-                    // digits, symbols, Unicode, etc.).
-                    span[i] = c.ToLowerInvariant();
-                }
-            }
-        });
     }
 
     /// <summary>
@@ -1688,69 +1300,6 @@ public static class StringExtension
             return null;
 
         return Path.GetFileName(uriObj.AbsolutePath);
-    }
-
-    /// <summary>
-    /// Converts the specified string to title case (each word capitalized), using spaces to determine word boundaries.
-    /// </summary>
-    /// <param name="str">The string to convert to title case.</param>
-    /// <returns>A string converted to title case where each word is capitalized.</returns>
-    /// <remarks>
-    /// This method uses the current culture's <see cref="TextInfo"/> to perform the conversion.
-    /// If the input string is null or empty, it returns the original string.
-    /// </remarks>
-    [Pure]
-    public static string ToTitleCaseViaSpaces(this string str)
-    {
-        if (str.IsNullOrEmpty())
-            return str;
-
-        int length = str.Length;
-
-        if (length <= _stackallocThreshold)
-        {
-            Span<char> buffer = stackalloc char[length];
-            ProcessToTitleCase(str, buffer);
-            return new string(buffer);
-        }
-        else
-        {
-            ArrayPool<char> pool = ArrayPool<char>.Shared;
-            char[] rentedBuffer = pool.Rent(length);
-
-            Span<char> buffer = rentedBuffer.AsSpan(0, length);
-            ProcessToTitleCase(str, buffer);
-
-            var result = new string(buffer);
-            pool.Return(rentedBuffer);
-
-            return result;
-        }
-    }
-
-    private static void ProcessToTitleCase(string input, Span<char> buffer)
-    {
-        var newWord = true;
-
-        for (var i = 0; i < input.Length; i++)
-        {
-            char c = input[i];
-
-            if (c.IsWhiteSpaceFast())
-            {
-                newWord = true;
-                buffer[i] = c;
-            }
-            else if (newWord)
-            {
-                buffer[i] = c.ToUpperInvariant();
-                newWord = false;
-            }
-            else
-            {
-                buffer[i] = c.ToLowerInvariant();
-            }
-        }
     }
 
     /// <summary>
