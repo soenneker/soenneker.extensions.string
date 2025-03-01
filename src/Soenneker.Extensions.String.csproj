@@ -44,6 +44,6 @@
         <PackageReference Include="Soenneker.Extensions.Char" Version="3.0.57" />
         <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.75" />
         <PackageReference Include="Soenneker.Utils.Random" Version="3.0.74" />
-        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.65" />
+        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.66" />
     </ItemGroup>
 </Project>
