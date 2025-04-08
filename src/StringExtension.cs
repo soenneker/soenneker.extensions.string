@@ -1,4 +1,9 @@
-﻿using System;
+﻿using Soenneker.Extensions.Arrays.Bytes;
+using Soenneker.Extensions.Char;
+using Soenneker.Extensions.Stream;
+using Soenneker.Utils.Random;
+using Soenneker.Utils.RegexCollection;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -8,11 +13,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
-using Soenneker.Extensions.Arrays.Bytes;
-using Soenneker.Extensions.Char;
-using Soenneker.Extensions.Stream;
-using Soenneker.Utils.Random;
-using Soenneker.Utils.RegexCollection;
 
 namespace Soenneker.Extensions.String;
 
@@ -391,27 +391,18 @@ public static partial class StringExtension
         if (length == 0)
             return "";
 
-        // Allocate the result string upfront
-        var result = new string('\0', length);
+        Span<char> buffer = length <= 128 // Inline threshold (optional tuning)
+            ? stackalloc char[length]
+            : new char[length]; // fallback for large strings, no pooling to keep it simple
 
-        // Pin both source and destination
-        unsafe
+        ReadOnlySpan<char> input = value;
+
+        for (int i = 0; i < length; i++)
         {
-            fixed (char* src = value)
-            fixed (char* dst = result)
-            {
-                for (var i = 0; i < length; i++)
-                {
-                    char c = src[i];
-                    if (c == '.')
-                        c = '-';
-
-                    dst[i] = c;
-                }
-            }
+            buffer[i] = input[i] == '.' ? '-' : input[i];
         }
 
-        return result;
+        return new string(buffer);
     }
 
     /// <summary>
@@ -425,26 +416,19 @@ public static partial class StringExtension
         if (length == 0)
             return "";
 
-        // Allocate the result string upfront
-        var result = new string('\0', length);
+        Span<char> buffer = length <= 128
+            ? stackalloc char[length]
+            : new char[length]; // Heap fallback for large strings
 
-        // Pin both source and destination
-        unsafe
+        ReadOnlySpan<char> input = value;
+
+        for (int i = 0; i < length; i++)
         {
-            fixed (char* src = value)
-            fixed (char* dst = result)
-            {
-                for (var i = 0; i < length; i++)
-                {
-                    char c = src[i];
-                    if (c.IsWhiteSpaceFast())
-                        c = '-';
-                    dst[i] = c;
-                }
-            }
+            char c = input[i];
+            buffer[i] = c.IsWhiteSpaceFast() ? '-' : c;
         }
 
-        return result;
+        return new string(buffer);
     }
 
     /// <summary>
@@ -865,7 +849,7 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             throw new ArgumentException($"Empty/null string was attempted to convert to enum of type {typeof(TEnum)}", nameof(value));
 
-        return (TEnum) Enum.Parse(typeof(TEnum), value, true);
+        return Enum.Parse<TEnum>(value, true);
     }
 
     [Pure]
@@ -874,10 +858,10 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return null;
 
-        bool parsedSuccessfully = Enum.TryParse(typeof(TEnum), value, true, out object? rtn);
+        bool parsedSuccessfully = Enum.TryParse(value, true, out TEnum rtn);
 
         if (parsedSuccessfully)
-            return (TEnum?) rtn;
+            return rtn;
 
         return null;
     }
