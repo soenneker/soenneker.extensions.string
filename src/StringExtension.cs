@@ -21,7 +21,10 @@ namespace Soenneker.Extensions.String;
 /// </summary>
 public static partial class StringExtension
 {
-    private const int _stackallocThreshold = 128;
+    /// <summary>
+    /// Safe on modern hardware (Intel Core 6th gen+ / AMD Ryzen 1st gen+ / ARM Cortex-A72+).
+    /// </summary>
+    private const int _stackallocThreshold = 256;
 
     /// <summary>
     /// Truncates a string to the specified length.
@@ -75,42 +78,45 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveNonDigits(this string? value)
     {
-        // Quickly handle null or empty input
         if (value.IsNullOrEmpty())
             return value;
 
-        ReadOnlySpan<char> span = value;
+        ReadOnlySpan<char> span = value.AsSpan();
         int length = span.Length;
 
-        // Allocate a buffer as large as the input length
-        // so we never need to expand or re-allocate.
-        char[] buffer = GC.AllocateUninitializedArray<char>(length);
+        char[]? buffer = null;
         var idx = 0;
-        var foundNonDigit = false;
 
-        // Single pass: copy only the digits
         for (var i = 0; i < length; i++)
         {
             char c = span[i];
+
             if (c.IsDigit())
             {
-                buffer[idx++] = c;
+                if (buffer != null)
+                    buffer[idx++] = c;
             }
             else
             {
-                foundNonDigit = true;
+                if (buffer == null)
+                {
+                    // ❗ First non-digit detected: allocate buffer, copy previous valid chars
+                    buffer = GC.AllocateUninitializedArray<char>(length);
+                    span.Slice(0, i).CopyTo(buffer);
+                    idx = i;
+                }
             }
         }
 
-        // If no non-digit was found, avoid creating a new string
-        if (!foundNonDigit)
+        // No non-digit characters? Return original reference (no alloc)
+        if (buffer == null)
             return value;
 
-        // If everything was removed, return an empty string
+        // All removed? Return empty
         if (idx == 0)
             return "";
 
-        // Create the new string from our buffer
+        // Return new string from valid digits
         return new string(buffer, 0, idx);
     }
 
@@ -129,34 +135,35 @@ public static partial class StringExtension
         ReadOnlySpan<char> span = value.AsSpan();
         int length = span.Length;
 
-        // Allocate a buffer as large as the original to ensure we never 
-        // have to expand/reallocate. We'll track how many chars we store.
-        char[] buffer = GC.AllocateUninitializedArray<char>(length);
+        char[]? buffer = null;
         var idx = 0;
-        var foundWhiteSpace = false;
 
         for (var i = 0; i < length; i++)
         {
             char c = span[i];
-            if (c.IsWhiteSpaceFast())
+
+            if (!c.IsWhiteSpaceFast())
             {
-                foundWhiteSpace = true;
+                if (buffer != null)
+                    buffer[idx++] = c;
             }
             else
             {
-                buffer[idx++] = c;
+                if (buffer == null)
+                {
+                    buffer = GC.AllocateUninitializedArray<char>(length);
+                    span.Slice(0, i).CopyTo(buffer);
+                    idx = i;
+                }
             }
         }
 
-        // If we never encountered whitespace, we can skip creating a new string.
-        if (!foundWhiteSpace)
+        if (buffer == null)
             return value;
 
-        // If everything was whitespace, return empty.
         if (idx == 0)
             return "";
 
-        // Create the new string from our buffer.
         return new string(buffer, 0, idx);
     }
 
@@ -170,33 +177,35 @@ public static partial class StringExtension
         ReadOnlySpan<char> span = value.AsSpan();
         int length = span.Length;
 
-        // Allocate a buffer as large as the original to ensure we never have to reallocate.
-        char[] buffer = GC.AllocateUninitializedArray<char>(length);
+        char[]? buffer = null;
         var idx = 0;
-        var foundAny = false;
 
         for (var i = 0; i < length; i++)
         {
             char c = span[i];
-            if (c == removeChar)
+
+            if (c != removeChar)
             {
-                foundAny = true;
+                if (buffer != null)
+                    buffer[idx++] = c;
             }
             else
             {
-                buffer[idx++] = c;
+                if (buffer == null)
+                {
+                    buffer = GC.AllocateUninitializedArray<char>(length);
+                    span.Slice(0, i).CopyTo(buffer);
+                    idx = i;
+                }
             }
         }
 
-        // If the character was never found, return the original string to avoid an extra allocation.
-        if (!foundAny)
+        if (buffer == null)
             return value;
 
-        // If every character was removed, return an empty string.
         if (idx == 0)
             return "";
 
-        // Create a new string from the buffer segment we used.
         return new string(buffer, 0, idx);
     }
 
@@ -225,12 +234,8 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return false;
 
-        using IEnumerator<string> enumerator = suffixes.GetEnumerator();
-
-        while (enumerator.MoveNext())
+        foreach (string suffix in suffixes)
         {
-            string suffix = enumerator.Current;
-
             if (!suffix.IsNullOrEmpty() && value.EndsWith(suffix, comparison))
                 return true;
         }
@@ -251,12 +256,8 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return false;
 
-        using IEnumerator<string> enumerator = prefixes.GetEnumerator();
-        while (enumerator.MoveNext())
+        foreach (string prefix in prefixes)
         {
-            string prefix = enumerator.Current;
-
-            // Skip null or empty prefixes
             if (!prefix.IsNullOrEmpty() && value.StartsWith(prefix, comparison))
                 return true;
         }
@@ -397,7 +398,7 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> input = value;
 
-        for (int i = 0; i < length; i++)
+        for (var i = 0; i < length; i++)
         {
             buffer[i] = input[i] == '.' ? '-' : input[i];
         }
@@ -416,13 +417,11 @@ public static partial class StringExtension
         if (length == 0)
             return "";
 
-        Span<char> buffer = length <= 128
-            ? stackalloc char[length]
-            : new char[length]; // Heap fallback for large strings
+        Span<char> buffer = length <= 128 ? stackalloc char[length] : new char[length]; // Heap fallback for large strings
 
         ReadOnlySpan<char> input = value;
 
-        for (int i = 0; i < length; i++)
+        for (var i = 0; i < length; i++)
         {
             char c = input[i];
             buffer[i] = c.IsWhiteSpaceFast() ? '-' : c;
@@ -659,10 +658,10 @@ public static partial class StringExtension
     [Pure]
     public static string SecureShuffle(this string value)
     {
-        if (value.IsNullOrEmpty())
-            return value;
+        int length = value?.Length ?? 0;
 
-        int length = value.Length;
+        if (length == 0)
+            return value;
 
         if (length <= _stackallocThreshold)
         {
@@ -908,18 +907,18 @@ public static partial class StringExtension
     /// </summary>
     /// <remarks>Don't use this for splitting into document/partition keys, use <see cref="ToSplitId"/> instead.</remarks>
     [Pure]
-    public static List<string>? ToIds(this string? str)
+    public static List<string>? ToIds(this string? value)
     {
-        if (str.IsNullOrEmpty())
-            return null;
+        int length = value?.Length ?? 0;
 
-        int length = str.Length;
+        if (length == 0)
+            return null;
 
         if (length <= _stackallocThreshold)
         {
             // Use stackalloc for small strings
             Span<char> buffer = stackalloc char[length];
-            return ParseIds(str.AsSpan(), buffer);
+            return ParseIds(value.AsSpan(), buffer);
         }
 
         // Use ArrayPool for larger strings
@@ -927,7 +926,7 @@ public static partial class StringExtension
         char[] rentedBuffer = pool.Rent(length);
 
         Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
-        List<string> result = ParseIds(str.AsSpan(), bufferSpan);
+        List<string> result = ParseIds(value.AsSpan(), bufferSpan);
 
         // Return the buffer to the pool after use
         pool.Return(rentedBuffer);
@@ -985,9 +984,7 @@ public static partial class StringExtension
                 if (i == 0)
                 {
                     // Edge case: If the string is just ":" or ":something"
-                    string documentId = (id.Length == 1)
-                        ? ""
-                        : new string(id.AsSpan(1));
+                    string documentId = (id.Length == 1) ? "" : new string(id.AsSpan(1));
                     return ("", documentId);
                 }
 
@@ -1051,14 +1048,20 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Converts the specified string to a boolean. Returns false if the conversion fails.
+    /// Converts a string to a boolean value. Accepts "true", "false", "1", "0" (case-insensitive).
+    /// Returns false if input is null, empty, or unrecognized.
     /// </summary>
-    /// <param name="str">The string to convert to a boolean. Can be null.</param>
-    /// <returns><see langword="true"/> if the string can be parsed as a valid boolean and is true; otherwise, <see langword="false"/>.</returns>
-    [Pure]
-    public static bool ToBool(this string? str)
+    public static bool ToBool(this string? value)
     {
-        return Convert.ToBoolean(str);
+        ReadOnlySpan<char> span = value.AsSpan().Trim();
+
+        if (bool.TryParse(span, out bool result))
+            return result;
+
+        if (span is "1")
+            return true;
+
+        return false;
     }
 
     /// <summary>
@@ -1100,10 +1103,10 @@ public static partial class StringExtension
     [Pure]
     public static string Mask(this string input)
     {
-        if (input.IsNullOrEmpty())
-            return "";
+        int length = input?.Length ?? 0;
 
-        int length = input.Length;
+        if (length == 0)
+            return "";
 
         if (length <= 6)
             return new string('*', length);
@@ -1259,9 +1262,7 @@ public static partial class StringExtension
             return "";
 
         // Remove the leading '.' and convert to lower case
-        return extension[0] == '.'
-            ? extension.AsSpan(1).ToString().ToLowerInvariantFast()
-            : extension.ToLowerInvariantFast();
+        return extension[0] == '.' ? extension.AsSpan(1).ToString().ToLowerInvariantFast() : extension.ToLowerInvariantFast();
     }
 
     /// <summary>

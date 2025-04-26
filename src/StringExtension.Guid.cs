@@ -13,7 +13,7 @@ public static partial class StringExtension
     [Pure]
     public static bool IsValidGuid(this string? input)
     {
-        return input is not null && Guid.TryParse(input, out _);
+        return Guid.TryParse(input, out _);
     }
 
     /// <summary>
@@ -22,15 +22,7 @@ public static partial class StringExtension
     [Pure]
     public static bool IsValidPopulatedGuid(this string? input)
     {
-        if (input is null)
-            return false;
-
-        bool success = Guid.TryParse(input, out Guid result);
-
-        if (success && result != Guid.Empty)
-            return true;
-
-        return false;
+        return Guid.TryParse(input, out Guid result) && result != Guid.Empty;
     }
 
     /// <summary>
@@ -48,39 +40,23 @@ public static partial class StringExtension
     [Pure]
     public static bool IsValidPopulatedNullableGuid(this string? input)
     {
-        if (input is null)
-            return true;
-
-        bool success = Guid.TryParse(input, out Guid result);
-
-        if (success && result != Guid.Empty)
-            return true;
-
-        return false;
+        return input is null || (Guid.TryParse(input, out Guid result) && result != Guid.Empty);
     }
 
     /// <summary>
-    /// Extracts an integer from any valid GUID string.
+    /// Extracts a deterministic integer from the first 4 bytes of a valid GUID string.
     /// </summary>
     /// <param name="guidString">A valid GUID string in "D" format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).</param>
-    /// <returns>A deterministic integer derived from the first four bytes of the GUID.</returns>
-    /// <exception cref="FormatException">Thrown if the input is not a valid GUID.</exception>
+    /// <returns>A non-negative integer derived from the first 4 bytes of the GUID.</returns>
+    /// <exception cref="FormatException">Thrown if the input is not a valid GUID in "D" format.</exception>
     [Pure]
     public static int ToIntFromGuid(this string guidString)
     {
-        // Validate and parse the GUID
         if (!Guid.TryParseExact(guidString, "D", out Guid guid))
-        {
             throw new FormatException("Invalid GUID format. Expected a GUID in 'D' format.");
-        }
 
-        // Read the first 4 bytes of the GUID as an integer
-        Span<byte> bytes = stackalloc byte[16];
-        MemoryMarshal.TryWrite(bytes, in guid);
+        int extracted = Unsafe.As<Guid, int>(ref guid);
 
-        int extractedValue = Unsafe.ReadUnaligned<int>(ref bytes[0]);
-
-        // Ensure the integer is always non-negative
-        return extractedValue & int.MaxValue;
+        return extracted & int.MaxValue;
     }
 }

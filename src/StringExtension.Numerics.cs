@@ -16,12 +16,14 @@ public static partial class StringExtension
     [Pure]
     public static bool IsNumeric(this string? value)
     {
-        if (value.IsNullOrWhiteSpace())
+        ReadOnlySpan<char> span = value;
+
+        if (span.IsEmpty)
             return false;
 
-        for (var i = 0; i < value.Length; i++)
+        for (var i = 0; i < span.Length; i++)
         {
-            if (!value[i].IsDigit())
+            if (!span[i].IsDigit())
                 return false;
         }
 
@@ -36,10 +38,10 @@ public static partial class StringExtension
     [Pure]
     public static double? ToDouble(this string value)
     {
-        if (value.IsNullOrWhiteSpace())
+        if (value?.Length == 0)
             return null;
 
-        bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureEnUsCache.CultureInfo, out double result);
+        bool successful = double.TryParse(value, NumberStyles.AllowDecimalPoint, CultureEnUsCache.Instance, out double result);
 
         if (successful)
             return result;
@@ -55,10 +57,10 @@ public static partial class StringExtension
     [Pure]
     public static decimal? ToDecimal(this string value)
     {
-        if (value.IsNullOrWhiteSpace())
+        if (value?.Length == 0)
             return null;
 
-        bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureEnUsCache.CultureInfo, out decimal result);
+        bool successful = decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureEnUsCache.Instance, out decimal result);
 
         if (successful)
             return result;
@@ -66,7 +68,10 @@ public static partial class StringExtension
         return null;
     }
 
-
+    /// <summary>
+    /// Converts the specified string to an integer. If the conversion fails, it returns 0.
+    /// </summary>
+    /// <param name="str">The string to convert to an integer. Can be null.</param>
     /// <summary>
     /// Converts the specified string to an integer. If the conversion fails, it returns 0.
     /// </summary>

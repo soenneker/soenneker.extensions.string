@@ -22,9 +22,25 @@ public static partial class StringExtension
             return value;
 
         if (value.Length == 1)
-            return value[0].ToLowerInvariant().ToString();
+        {
+            char c = value[0];
+            char lowered = c.ToLowerInvariant();
 
-        return value[0].ToLowerInvariant() + value[1..];
+            if (c == lowered)
+                return value; // No change, return original string
+
+            return lowered.ToString();
+        }
+
+        // Check if first char is already lowercase
+        if (!value[0].IsUpperFast())
+            return value;
+
+        Span<char> buffer = stackalloc char[value.Length];
+        value.AsSpan().CopyTo(buffer);
+        buffer[0] = buffer[0].ToLowerInvariant();
+
+        return new string(buffer);
     }
 
     /// <summary>
@@ -40,9 +56,25 @@ public static partial class StringExtension
             return value;
 
         if (value.Length == 1)
-            return value[0].ToUpperInvariant().ToString();
+        {
+            char c = value[0];
+            char uppered = c.ToUpperInvariant();
 
-        return value[0].ToUpperInvariant() + value[1..];
+            if (c == uppered)
+                return value; // No change, return original string
+
+            return uppered.ToString();
+        }
+
+        // Check if first char is already uppercase
+        if (!value[0].IsLowerFast())
+            return value;
+
+        Span<char> buffer = stackalloc char[value.Length];
+        value.AsSpan().CopyTo(buffer);
+        buffer[0] = buffer[0].ToUpperInvariant();
+
+        return new string(buffer);
     }
 
     /// <summary>
@@ -54,32 +86,26 @@ public static partial class StringExtension
     [Pure]
     public static string ToLowerInvariantFast(this string str)
     {
-
         int length = str.Length;
 
-        if (length is 0)
+        if (length == 0)
             return "";
 
-        // Single-allocation approach
-        return string.Create(length, str, static (span, s) =>
+        return string.Create(length, str, static (span, source) =>
         {
             for (var i = 0; i < span.Length; i++)
             {
-                char c = s[i];
+                char c = source[i];
 
-                // Fast path for ASCII A–Z:
-                // (uint)(c - 'A') <= ('Z' - 'A') 
-                // is the JIT-optimized check for c >= 'A' && c <= 'Z'.
-                if ((uint)(c - 'A') <= 'Z' - 'A')
+                // Fast ASCII A–Z check
+                if ((uint)(c - 'A') <= ('Z' - 'A'))
                 {
-                    // Convert uppercase ASCII to lowercase by adding 32 (0x20).
-                    span[i] = (char)(c + 32);
+                    span[i] = (char)(c + 32); // ASCII uppercase to lowercase
                 }
                 else
                 {
-                    // Fallback for non-ASCII A–Z characters (including already lowercase ASCII,
-                    // digits, symbols, Unicode, etc.).
-                    span[i] = c.ToLowerInvariant();
+                    // Unicode fallback - lowercase properly
+                    span[i] = c.IsUpperFast() ? c.ToLowerInvariant() : c;
                 }
             }
         });
@@ -94,31 +120,26 @@ public static partial class StringExtension
     [Pure]
     public static string ToUpperInvariantFast(this string str)
     {
-        int length = str.Length; // safe after above check
+        int length = str.Length;
 
-        if (length is 0)
+        if (length == 0)
             return "";
 
-        // One-pass creation of the uppercase string
-        // Minimizes allocations by writing directly into the final string memory.
-        return string.Create(length, str, static (span, s) =>
+        return string.Create(length, str, static (span, source) =>
         {
             for (var i = 0; i < span.Length; i++)
             {
-                char c = s[i];
+                char c = source[i];
 
-                // Fast path for ASCII a–z:
-                //   if ((uint)(c - 'a') <= ('z' - 'a'))
-                // means: if c >= 'a' && c <= 'z'
-                if ((uint)(c - 'a') <= 'z' - 'a')
+                // Fast ASCII a–z check
+                if ((uint)(c - 'a') <= ('z' - 'a'))
                 {
-                    span[i] = (char)(c - 32); // c & ~0x20
+                    span[i] = (char)(c - 32); // ASCII lowercase to uppercase
                 }
                 else
                 {
-                    // Fallback for all non-ASCII-lowercase characters
-                    // (including already uppercase ASCII, digits, symbols, Unicode, etc.)
-                    span[i] = c.ToUpperInvariant();
+                    // Unicode fallback - uppercase properly if needed
+                    span[i] = c.IsLowerFast() ? c.ToUpperInvariant() : c;
                 }
             }
         });
