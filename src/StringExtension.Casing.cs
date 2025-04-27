@@ -4,7 +4,6 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
-using System.Numerics;
 
 namespace Soenneker.Extensions.String;
 
