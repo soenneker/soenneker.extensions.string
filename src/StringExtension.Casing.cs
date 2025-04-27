@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
+using System.Numerics;
 
 namespace Soenneker.Extensions.String;
 
@@ -18,10 +19,12 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? ToLowerFirstChar(this string? value)
     {
-        if (value.IsNullOrWhiteSpace())
+        int length = value?.Length ?? 0;
+
+        if (length == 0)
             return value;
 
-        if (value.Length == 1)
+        if (length == 1)
         {
             char c = value[0];
             char lowered = c.ToLowerInvariant();
@@ -36,7 +39,7 @@ public static partial class StringExtension
         if (!value[0].IsUpperFast())
             return value;
 
-        Span<char> buffer = stackalloc char[value.Length];
+        Span<char> buffer = stackalloc char[length];
         value.AsSpan().CopyTo(buffer);
         buffer[0] = buffer[0].ToLowerInvariant();
 
@@ -52,10 +55,12 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? ToUpperFirstChar(this string? value)
     {
-        if (value.IsNullOrWhiteSpace())
+        int length = value?.Length ?? 0;
+
+        if (length == 0)
             return value;
 
-        if (value.Length == 1)
+        if (length == 1)
         {
             char c = value[0];
             char uppered = c.ToUpperInvariant();
@@ -70,7 +75,7 @@ public static partial class StringExtension
         if (!value[0].IsLowerFast())
             return value;
 
-        Span<char> buffer = stackalloc char[value.Length];
+        Span<char> buffer = stackalloc char[length];
         value.AsSpan().CopyTo(buffer);
         buffer[0] = buffer[0].ToUpperInvariant();
 
@@ -237,10 +242,10 @@ public static partial class StringExtension
     [Pure]
     public static string ToTitleCaseViaSpaces(this string str)
     {
-        if (str.IsNullOrEmpty())
-            return str;
+        int length = str?.Length ?? 0;
 
-        int length = str.Length;
+        if (length == 0)
+            return str;
 
         if (length <= _stackallocThreshold)
         {
@@ -300,11 +305,13 @@ public static partial class StringExtension
     [Pure]
     public static string ToSnakeCaseFromPascal(this string input)
     {
-        if (input.IsNullOrEmpty())
+        int length = input?.Length ?? 0;
+
+        if (length == 0)
             return input;
 
         // Over-allocate for worst-case scenario: input.Length * 2
-        int maxBufferSize = input.Length * 2;
+        int maxBufferSize = length * 2;
 
         if (maxBufferSize <= _stackallocThreshold)
         {

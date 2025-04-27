@@ -1,13 +1,23 @@
+using FluentAssertions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using FluentAssertions;
 using Xunit;
 
 namespace Soenneker.Extensions.String.Tests;
 
 public class StringExtensionTests
 {
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("", true)]
+    [InlineData(" ", false)]
+    public void IsEmpty(string? value, bool expected)
+    {
+        bool result = value.IsEmpty();
+        result.Should().Be(expected);
+    }
+
     [Fact]
     public void String_date_should_parse()
     {
