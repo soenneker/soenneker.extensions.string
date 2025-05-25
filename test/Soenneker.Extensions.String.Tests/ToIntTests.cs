@@ -19,7 +19,7 @@ public class ToIntTests
     public void ToInt_ShouldReturnExpectedResult(string? input, int expected)
     {
         // Act
-        var result = input.ToInt();
+        int result = input.ToInt();
 
         // Assert
         result.Should().Be(expected);
@@ -32,7 +32,7 @@ public class ToIntTests
         var input = int.MaxValue.ToString();
 
         // Act
-        var result = input.ToInt();
+        int result = input.ToInt();
 
         // Assert
         result.Should().Be(int.MaxValue);
@@ -45,7 +45,7 @@ public class ToIntTests
         var input = int.MinValue.ToString();
 
         // Act
-        var result = input.ToInt();
+        int result = input.ToInt();
 
         // Assert
         result.Should().Be(int.MinValue);
@@ -57,7 +57,7 @@ public class ToIntTests
     public void ToInt_ShouldReturnZeroForOverflowOrUnderflow(string? input, int expected)
     {
         // Act
-        var result = input.ToInt();
+        int result = input.ToInt();
 
         // Assert
         result.Should().Be(expected);

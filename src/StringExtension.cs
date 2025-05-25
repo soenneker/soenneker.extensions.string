@@ -13,6 +13,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Soenneker.Extensions.String;
 
@@ -1321,5 +1322,41 @@ public static partial class StringExtension
     public static bool EndsWithIgnoreCase(this string str, string value)
     {
         return str.EndsWith(value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Removes Markdown-style triple backtick code block markers (e.g., <c>```csharp</c>) from the start and end of the string.
+    /// </summary>
+    /// <param name="input">The input string that may contain Markdown code block delimiters.</param>
+    /// <returns>
+    /// A trimmed string with the opening <c>```</c> marker (and optional language identifier) and the closing <c>```</c> removed,
+    /// or the original string if it is null, empty, or whitespace.
+    /// </returns>
+    /// <remarks>
+    /// This method trims leading and trailing whitespace, removes an optional opening Markdown code fence (e.g., <c>```js\n</c>),
+    /// and also strips a closing <c>```</c> if present. The content between the markers is preserved as-is.
+    /// </remarks>
+    [Pure]
+    public static string RemoveCodeBlockMarkers(this string input)
+    {
+        if (input.IsNullOrWhiteSpace())
+            return input;
+
+        ReadOnlySpan<char> span = input.AsSpan().Trim();
+
+        // Remove opening code block marker (```lang\n or ```\n)
+        Match match = RegexCollection.MarkdownCodeFence().Match(span.ToString());
+
+        if (match is {Success: true, Index: 0})
+            span = span.Slice(match.Length);
+
+        // Remove closing code block if present at the end
+        if (span.EndsWith("```".AsSpan()))
+        {
+            span = span.Slice(0, span.LastIndexOf("```".AsSpan(), StringComparison.Ordinal));
+            span = span.TrimEnd();
+        }
+
+        return span.ToString();
     }
 }
