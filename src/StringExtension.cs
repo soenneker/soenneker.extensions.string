@@ -168,6 +168,18 @@ public static partial class StringExtension
         return new string(buffer, 0, idx);
     }
 
+    /// <summary>
+    /// Removes all occurrences of a specified character from the input string.
+    /// </summary>
+    /// <param name="value">The string to process. If <c>null</c> or empty, it is returned as-is.</param>
+    /// <param name="removeChar">The character to remove from the string.</param>
+    /// <returns>
+    /// A new string with all instances of <paramref name="removeChar"/> removed,
+    /// or the original string if no changes were necessary. Returns <c>null</c> if <paramref name="value"/> is <c>null</c>.
+    /// </returns>
+    /// <remarks>
+    /// This method avoids unnecessary allocations by only creating a buffer if at least one character is removed.
+    /// </remarks>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveAllChar(this string? value, char removeChar)
@@ -495,34 +507,6 @@ public static partial class StringExtension
             return [];
 
         return Convert.FromBase64String(value);
-    }
-
-    /// <summary>
-    /// Use whenever a URL needs to be encoded etc.
-    /// Utilizes Uri.EscapeDataString
-    /// </summary>
-    /// <remarks>https://stackoverflow.com/questions/602642/server-urlencode-vs-httputility-urlencode/1148326#1148326</remarks>
-    [Pure]
-    [return: NotNullIfNotNull(nameof(value))]
-    public static string? ToEscaped(this string? value)
-    {
-        if (value is null)
-            return null;
-
-        return Uri.EscapeDataString(value);
-    }
-
-    /// <summary>
-    /// Utilizes Uri.UnescapeDataString
-    /// </summary>
-    [Pure]
-    [return: NotNullIfNotNull(nameof(value))]
-    public static string? ToUnescaped(this string? value)
-    {
-        if (value is null)
-            return null;
-
-        return Uri.UnescapeDataString(value);
     }
 
     /// <summary>
@@ -1232,12 +1216,23 @@ public static partial class StringExtension
         return $"tel:+{countryCode}{cleanedNumber}";
     }
 
+    /// <summary>
+    /// Converts the given email address to a <c>mailto:</c> URI format.
+    /// </summary>
+    /// <param name="email">The email address to convert.</param>
+    /// <returns>A string formatted as <c>mailto:[email]</c>.</returns>
     [Pure]
     public static string ToMailToFormat(this string email)
     {
         return $"mailto:{email}";
     }
 
+    /// <summary>
+    /// Converts the given phone number to an <c>sms:</c> URI format, including the specified country code.
+    /// </summary>
+    /// <param name="phoneNumber">The phone number to convert.</param>
+    /// <param name="countryCode">The numeric country code to prefix the number with. Defaults to <c>1</c> (US).</param>
+    /// <returns>A string formatted as <c>sms:+[countryCode][cleanedNumber]</c>.</returns>
     [Pure]
     public static string ToSmsFormat(this string phoneNumber, int countryCode = 1)
     {
