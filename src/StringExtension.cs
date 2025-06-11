@@ -1320,6 +1320,19 @@ public static partial class StringExtension
     }
 
     /// <summary>
+    /// Determines whether the specified <paramref name="value"/> occurs within the current string
+    /// using an ordinal (case-insensitive) comparison.
+    /// </summary>
+    /// <param name="str">The string to search in.</param>
+    /// <param name="value">The string to seek.</param>
+    /// <returns><see langword="true"/> if <paramref name="value"/> is found in <paramref name="str"/>; otherwise, <see langword="false"/>.</returns>
+    [Pure]
+    public static bool ContainsIgnoreCase(this string str, string value)
+    {
+        return str.Contains(value, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Removes Markdown-style triple backtick code block markers (e.g., <c>```csharp</c>) from the start and end of the string.
     /// </summary>
     /// <param name="input">The input string that may contain Markdown code block delimiters.</param>
