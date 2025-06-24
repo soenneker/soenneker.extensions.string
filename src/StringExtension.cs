@@ -510,6 +510,20 @@ public static partial class StringExtension
     }
 
     /// <summary>
+    /// <inheritdoc cref="Convert.FromHexString(string)"/>
+    /// </summary>
+    /// <remarks>Equivalent to Convert.FromHexString(value)</remarks>
+    /// <param name="hex"></param>
+    /// <returns></returns>
+    public static byte[] ToBytesFromHex(this string hex)
+    {
+        if (hex.IsNullOrEmpty())
+            return [];
+
+        return Convert.FromHexString(hex);
+    }
+
+    /// <summary>
     /// Replaces "\r\n" with "\n"
     /// </summary>
     [Pure]
