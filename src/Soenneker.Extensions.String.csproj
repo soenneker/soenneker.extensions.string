@@ -43,7 +43,7 @@
         <PackageReference Include="Soenneker.Culture.English.US" Version="3.0.28" />
         <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="3.0.39" />
         <PackageReference Include="Soenneker.Extensions.Char" Version="3.0.74" />
-        <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.88" />
+        <PackageReference Include="Soenneker.Extensions.Stream" Version="3.0.89" />
         <PackageReference Include="Soenneker.Utils.Random" Version="3.0.89" />
         <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.74" />
     </ItemGroup>
