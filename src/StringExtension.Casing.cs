@@ -102,7 +102,7 @@ public static partial class StringExtension
                 char c = source[i];
 
                 // Fast ASCII A–Z check
-                if ((uint)(c - 'A') <= ('Z' - 'A'))
+                if ((uint)(c - 'A') <= 'Z' - 'A')
                 {
                     span[i] = (char)(c + 32); // ASCII uppercase to lowercase
                 }
@@ -136,7 +136,7 @@ public static partial class StringExtension
                 char c = source[i];
 
                 // Fast ASCII a–z check
-                if ((uint)(c - 'a') <= ('z' - 'a'))
+                if ((uint)(c - 'a') <= 'z' - 'a')
                 {
                     span[i] = (char)(c - 32); // ASCII lowercase to uppercase
                 }
@@ -177,7 +177,7 @@ public static partial class StringExtension
                 char c = s[i];
 
                 // Fast path for ASCII A–Z:
-                if ((uint)(c - 'A') <= ('Z' - 'A'))
+                if ((uint)(c - 'A') <= 'Z' - 'A')
                 {
                     span[i] = (char)(c + 32); // Convert ASCII uppercase to lowercase
                 }
@@ -217,7 +217,7 @@ public static partial class StringExtension
                 char c = s[i];
 
                 // Fast path for ASCII a–z:
-                if ((uint)(c - 'a') <= ('z' - 'a'))
+                if ((uint)(c - 'a') <= 'z' - 'a')
                 {
                     span[i] = (char)(c - 32); // Convert ASCII lowercase to uppercase
                 }

@@ -983,7 +983,7 @@ public static partial class StringExtension
                 if (i == 0)
                 {
                     // Edge case: If the string is just ":" or ":something"
-                    string documentId = (id.Length == 1) ? "" : new string(id.AsSpan(1));
+                    string documentId = id.Length == 1 ? "" : new string(id.AsSpan(1));
                     return ("", documentId);
                 }
 
