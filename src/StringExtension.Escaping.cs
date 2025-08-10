@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Text;
 
 namespace Soenneker.Extensions.String;
 
@@ -19,6 +18,9 @@ public static partial class StringExtension
         if (value is null)
             return null;
 
+        if (value.Length == 0)
+            return "";
+
         return Uri.EscapeDataString(value);
     }
 
@@ -31,6 +33,9 @@ public static partial class StringExtension
     {
         if (value is null)
             return null;
+
+        if (value.Length == 0)
+            return "";
 
         return Uri.UnescapeDataString(value);
     }
@@ -55,42 +60,176 @@ public static partial class StringExtension
         if (input.IsNullOrWhiteSpace())
             return "";
 
-        var builder = new StringBuilder(input.Length);
+        ReadOnlySpan<char> s = input;
 
-        for (var i = 0; i < input.Length; i++)
+        // ---- PASS 1: compute final length (with trim after transform) ----
+        var outLen = 0;
+        var i = 0;
+
+        var seenNonWs = false;
+        var pendingWs = 0; // whitespace collected between non-whitespace runs
+
+        while (i < s.Length)
         {
-            char current = input[i];
+            char c = s[i];
 
-            if (current == '{' && i + 1 < input.Length && input[i + 1] == '{')
+            // remove "{{" and "}}"
+            if (c == '{' && i + 1 < s.Length && s[i + 1] == '{')
             {
-                i++; // skip the second '{'
-                continue; // remove '{{'
+                i += 2;
+                continue;
             }
 
-            if (current == '}' && i + 1 < input.Length && input[i + 1] == '}')
+            if (c == '}' && i + 1 < s.Length && s[i + 1] == '}')
             {
-                i++; // skip the second '}'
-                continue; // remove '}}'
+                i += 2;
+                continue;
             }
 
-            switch (current)
+            // replacements
+            char mapped = c switch
             {
-                case '"':
-                    builder.Append('\'');
-                    break;
-                case '\\':
-                    builder.Append('/');
-                    break;
-                case '\r':
-                case '\n':
-                    builder.Append(' ');
-                    break;
-                default:
-                    builder.Append(current);
-                    break;
+                '"' => '\'',
+                '\\' => '/',
+                '\r' => ' ',
+                '\n' => ' ',
+                _ => c
+            };
+
+            bool isWs = char.IsWhiteSpace(mapped);
+
+            if (!seenNonWs)
+            {
+                // skip leading whitespace entirely
+                if (isWs)
+                {
+                    i++;
+                    continue;
+                }
+
+                seenNonWs = true;
+                outLen++; // first non-ws char
             }
+            else
+            {
+                if (isWs)
+                {
+                    pendingWs++; // don’t add yet; might be trimmed at end
+                }
+                else
+                {
+                    outLen += pendingWs; // flush pending ws (now it's not trailing)
+                    pendingWs = 0;
+                    outLen++;
+                }
+            }
+
+            i++;
         }
 
-        return builder.ToString().Trim();
+        // trailing whitespace is excluded (don’t add pendingWs)
+        if (outLen == 0) 
+            return "";
+
+        // ---- PASS 2: write directly ----
+        return string.Create(outLen, input, static (dst, srcStr) =>
+        {
+            ReadOnlySpan<char> s = srcStr;
+
+            var w = 0;
+            var i = 0;
+
+            // skip leading whitespace after transform
+            var leadingDone = false;
+
+            while (i < s.Length)
+            {
+                char c = s[i];
+
+                // remove "{{" and "}}"
+                if (c == '{' && i + 1 < s.Length && s[i + 1] == '{')
+                {
+                    i += 2;
+                    continue;
+                }
+
+                if (c == '}' && i + 1 < s.Length && s[i + 1] == '}')
+                {
+                    i += 2;
+                    continue;
+                }
+
+                // map char
+                char mapped = c switch
+                {
+                    '"' => '\'',
+                    '\\' => '/',
+                    '\r' => ' ',
+                    '\n' => ' ',
+                    _ => c
+                };
+
+                bool isWs = char.IsWhiteSpace(mapped);
+
+                if (!leadingDone)
+                {
+                    if (isWs)
+                    {
+                        i++;
+                        continue;
+                    } // drop leading ws
+
+                    leadingDone = true;
+                    dst[w++] = mapped;
+                    i++;
+                    continue;
+                }
+
+                // write, but avoid trailing ws: look-ahead and only write ws if a future non-ws exists
+                if (isWs)
+                {
+                    // peek ahead to see if any non-ws remains
+                    int j = i + 1;
+                    var hasMoreNonWs = false;
+                    while (j < s.Length)
+                    {
+                        char cj = s[j];
+                        if (cj == '{' && j + 1 < s.Length && s[j + 1] == '{')
+                        {
+                            j += 2;
+                            continue;
+                        }
+
+                        if (cj == '}' && j + 1 < s.Length && s[j + 1] == '}')
+                        {
+                            j += 2;
+                            continue;
+                        }
+
+                        char mj = cj switch
+                        {
+                            '"' => '\'',
+                            '\\' => '/',
+                            '\r' => ' ',
+                            '\n' => ' ',
+                            _ => cj
+                        };
+
+                        if (!char.IsWhiteSpace(mj))
+                        {
+                            hasMoreNonWs = true;
+                            break;
+                        }
+
+                        j++;
+                    }
+
+                    if (!hasMoreNonWs) break; // drop trailing ws entirely
+                }
+
+                dst[w++] = mapped;
+                i++;
+            }
+        });
     }
 }

@@ -1,6 +1,5 @@
 ﻿using Soenneker.Extensions.Char;
 using System;
-using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
@@ -18,31 +17,25 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? ToLowerFirstChar(this string? value)
     {
-        int length = value?.Length ?? 0;
+        int len = value?.Length ?? 0;
 
-        if (length == 0)
+        if (len == 0)
             return value;
 
-        if (length == 1)
+        char c0 = value![0];
+        char lc = c0.ToLowerInvariant();
+
+        if (c0 == lc)
+            return value;
+
+        if (len == 1)
+            return lc.ToString();
+
+        return string.Create(len, value, static (dst, src) =>
         {
-            char c = value[0];
-            char lowered = c.ToLowerInvariant();
-
-            if (c == lowered)
-                return value; // No change, return original string
-
-            return lowered.ToString();
-        }
-
-        // Check if first char is already lowercase
-        if (!value[0].IsUpperFast())
-            return value;
-
-        Span<char> buffer = stackalloc char[length];
-        value.AsSpan().CopyTo(buffer);
-        buffer[0] = buffer[0].ToLowerInvariant();
-
-        return new string(buffer);
+            dst[0] = src[0].ToLowerInvariant();
+            src.AsSpan(1).CopyTo(dst[1..]);
+        });
     }
 
     /// <summary>
@@ -54,31 +47,24 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? ToUpperFirstChar(this string? value)
     {
-        int length = value?.Length ?? 0;
-
-        if (length == 0)
+        int len = value?.Length ?? 0;
+        if (len == 0)
             return value;
 
-        if (length == 1)
+        char c0 = value![0];
+        char uc = c0.ToUpperInvariant();
+
+        if (c0 == uc)
+            return value;
+
+        if (len == 1)
+            return uc.ToString();
+
+        return string.Create(len, value, static (dst, src) =>
         {
-            char c = value[0];
-            char uppered = c.ToUpperInvariant();
-
-            if (c == uppered)
-                return value; // No change, return original string
-
-            return uppered.ToString();
-        }
-
-        // Check if first char is already uppercase
-        if (!value[0].IsLowerFast())
-            return value;
-
-        Span<char> buffer = stackalloc char[length];
-        value.AsSpan().CopyTo(buffer);
-        buffer[0] = buffer[0].ToUpperInvariant();
-
-        return new string(buffer);
+            dst[0] = src[0].ToUpperInvariant();
+            src.AsSpan(1).CopyTo(dst[1..]);
+        });
     }
 
     /// <summary>
@@ -90,27 +76,29 @@ public static partial class StringExtension
     [Pure]
     public static string ToLowerInvariantFast(this string str)
     {
-        int length = str.Length;
-
-        if (length == 0)
-            return "";
-
-        return string.Create(length, str, static (span, source) =>
+        ReadOnlySpan<char> s = str;
+        var i = 0;
+        for (; i < s.Length; i++)
         {
-            for (var i = 0; i < span.Length; i++)
-            {
-                char c = source[i];
+            char c = s[i];
 
-                // Fast ASCII A–Z check
-                if ((uint)(c - 'A') <= 'Z' - 'A')
-                {
-                    span[i] = (char)(c + 32); // ASCII uppercase to lowercase
-                }
-                else
-                {
-                    // Unicode fallback - lowercase properly
-                    span[i] = c.IsUpperFast() ? c.ToLowerInvariant() : c;
-                }
+            if ((uint) (c - 'A') <= 'Z' - 'A' || c.IsUpperFast())
+                break;
+        }
+
+        if (i == s.Length)
+            return str; // nothing to change
+
+        return string.Create(s.Length, (str, i), static (dst, st) =>
+        {
+            (string src, int start) = st;
+            src.AsSpan(0, start).CopyTo(dst);
+            ReadOnlySpan<char> ss = src.AsSpan();
+
+            for (int j = start; j < ss.Length; j++)
+            {
+                char c = ss[j];
+                dst[j] = (uint) (c - 'A') <= 'Z' - 'A' ? (char) (c + 32) : c.IsUpperFast() ? c.ToLowerInvariant() : c;
             }
         });
     }
@@ -124,27 +112,29 @@ public static partial class StringExtension
     [Pure]
     public static string ToUpperInvariantFast(this string str)
     {
-        int length = str.Length;
+        ReadOnlySpan<char> s = str;
+        var i = 0;
 
-        if (length == 0)
-            return "";
-
-        return string.Create(length, str, static (span, source) =>
+        for (; i < s.Length; i++)
         {
-            for (var i = 0; i < span.Length; i++)
-            {
-                char c = source[i];
+            char c = s[i];
 
-                // Fast ASCII a–z check
-                if ((uint)(c - 'a') <= 'z' - 'a')
-                {
-                    span[i] = (char)(c - 32); // ASCII lowercase to uppercase
-                }
-                else
-                {
-                    // Unicode fallback - uppercase properly if needed
-                    span[i] = c.IsLowerFast() ? c.ToUpperInvariant() : c;
-                }
+            if ((uint) (c - 'a') <= 'z' - 'a' || c.IsLowerFast())
+                break;
+        }
+
+        if (i == s.Length)
+            return str;
+
+        return string.Create(s.Length, (str, i), static (dst, st) =>
+        {
+            (string src, int start) = st;
+            src.AsSpan(0, start).CopyTo(dst);
+            ReadOnlySpan<char> ss = src.AsSpan();
+            for (int j = start; j < ss.Length; j++)
+            {
+                char c = ss[j];
+                dst[j] = (uint) (c - 'a') <= 'z' - 'a' ? (char) (c - 32) : c.IsLowerFast() ? c.ToUpperInvariant() : c;
             }
         });
     }
@@ -165,26 +155,25 @@ public static partial class StringExtension
     [Pure]
     public static string ToLowerOrdinal(this string str)
     {
-        int length = str.Length;
-
-        if (length == 0)
-            return "";
-
-        return string.Create(length, str, static (span, s) =>
+        ReadOnlySpan<char> s = str;
+        var i = 0;
+        for (; i < s.Length; i++)
         {
-            for (var i = 0; i < span.Length; i++)
-            {
-                char c = s[i];
+            char c = s[i];
+            if ((uint) (c - 'A') <= 'Z' - 'A') break;
+        }
 
-                // Fast path for ASCII A–Z:
-                if ((uint)(c - 'A') <= 'Z' - 'A')
-                {
-                    span[i] = (char)(c + 32); // Convert ASCII uppercase to lowercase
-                }
-                else
-                {
-                    span[i] = c; // Leave non-ASCII characters unchanged
-                }
+        if (i == s.Length) return str;
+
+        return string.Create(s.Length, (str, i), static (dst, st) =>
+        {
+            (string src, int start) = st;
+            src.AsSpan(0, start).CopyTo(dst);
+            ReadOnlySpan<char> ss = src.AsSpan();
+            for (int j = start; j < ss.Length; j++)
+            {
+                char c = ss[j];
+                dst[j] = (uint) (c - 'A') <= 'Z' - 'A' ? (char) (c + 32) : c;
             }
         });
     }
@@ -205,26 +194,30 @@ public static partial class StringExtension
     [Pure]
     public static string ToUpperOrdinal(this string str)
     {
-        int length = str.Length;
+        ReadOnlySpan<char> s = str;
+        var i = 0;
 
-        if (length == 0)
-            return "";
-
-        return string.Create(length, str, static (span, s) =>
+        for (; i < s.Length; i++)
         {
-            for (var i = 0; i < span.Length; i++)
-            {
-                char c = s[i];
+            char c = s[i];
 
-                // Fast path for ASCII a–z:
-                if ((uint)(c - 'a') <= 'z' - 'a')
-                {
-                    span[i] = (char)(c - 32); // Convert ASCII lowercase to uppercase
-                }
-                else
-                {
-                    span[i] = c; // Leave non-ASCII characters unchanged
-                }
+            if ((uint) (c - 'a') <= 'z' - 'a')
+                break;
+        }
+
+        if (i == s.Length)
+            return str;
+
+        return string.Create(s.Length, (str, i), static (dst, st) =>
+        {
+            (string src, int start) = st;
+            src.AsSpan(0, start).CopyTo(dst);
+            ReadOnlySpan<char> ss = src.AsSpan();
+
+            for (int j = start; j < ss.Length; j++)
+            {
+                char c = ss[j];
+                dst[j] = (uint) (c - 'a') <= 'z' - 'a' ? (char) (c - 32) : c;
             }
         });
     }
@@ -241,55 +234,32 @@ public static partial class StringExtension
     [Pure]
     public static string ToTitleCaseViaSpaces(this string str)
     {
-        int length = str?.Length ?? 0;
-
-        if (length == 0)
+        if (str.IsNullOrEmpty())
             return str;
 
-        if (length <= _stackallocThreshold)
+        return string.Create(str.Length, str, static (dst, src) =>
         {
-            Span<char> buffer = stackalloc char[length];
-            ProcessToTitleCase(str, buffer);
-            return new string(buffer);
-        }
-        else
-        {
-            ArrayPool<char> pool = ArrayPool<char>.Shared;
-            char[] rentedBuffer = pool.Rent(length);
+            var newWord = true;
 
-            Span<char> buffer = rentedBuffer.AsSpan(0, length);
-            ProcessToTitleCase(str, buffer);
-
-            var result = new string(buffer);
-            pool.Return(rentedBuffer);
-
-            return result;
-        }
-    }
-
-    private static void ProcessToTitleCase(string input, Span<char> buffer)
-    {
-        var newWord = true;
-
-        for (var i = 0; i < input.Length; i++)
-        {
-            char c = input[i];
-
-            if (c.IsWhiteSpaceFast())
+            for (var i = 0; i < src.Length; i++)
             {
-                newWord = true;
-                buffer[i] = c;
+                char c = src[i];
+                if (char.IsWhiteSpace(c))
+                {
+                    newWord = true;
+                    dst[i] = c;
+                }
+                else if (newWord)
+                {
+                    dst[i] = c.ToUpperInvariant();
+                    newWord = false;
+                }
+                else
+                {
+                    dst[i] = c.ToLowerInvariant();
+                }
             }
-            else if (newWord)
-            {
-                buffer[i] = c.ToUpperInvariant();
-                newWord = false;
-            }
-            else
-            {
-                buffer[i] = c.ToLowerInvariant();
-            }
-        }
+        });
     }
 
     /// <summary>
@@ -304,55 +274,36 @@ public static partial class StringExtension
     [Pure]
     public static string ToSnakeCaseFromPascal(this string input)
     {
-        int length = input?.Length ?? 0;
+        int len = input?.Length ?? 0;
 
-        if (length == 0)
+        if (len == 0)
             return input;
 
-        // Over-allocate for worst-case scenario: input.Length * 2
-        int maxBufferSize = length * 2;
-
-        if (maxBufferSize <= _stackallocThreshold)
+        var underscores = 0;
+        for (var i = 1; i < len; i++)
         {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[maxBufferSize];
-            int outputIndex = ProcessSnakeCase(input, buffer);
-            return new string(buffer.Slice(0, outputIndex));
+            if (input[i].IsUpperFast())
+                underscores++;
         }
-        else
+
+        if (underscores == 0)
+            return input.ToLowerInvariant(); // nothing to split; just lower
+
+        int outLen = len + underscores;
+
+        return string.Create(outLen, input, static (dst, src) =>
         {
-            // Use ArrayPool for large strings
-            ArrayPool<char> pool = ArrayPool<char>.Shared;
-            char[] rentedBuffer = pool.Rent(maxBufferSize);
-            Span<char> buffer = rentedBuffer.AsSpan(0, maxBufferSize);
-
-            int outputIndex = ProcessSnakeCase(input, buffer);
-            var result = new string(buffer.Slice(0, outputIndex));
-
-            // Explicitly return the buffer to the pool
-            pool.Return(rentedBuffer);
-
-            return result;
-        }
-    }
-
-    private static int ProcessSnakeCase(string input, Span<char> buffer)
-    {
-        var outputIndex = 0;
-
-        for (var i = 0; i < input.Length; i++)
-        {
-            char currentChar = input[i];
-
-            // If it's an uppercase letter and not at the beginning, prepend an underscore.
-            if (currentChar.IsUpperFast() && i > 0)
+            var w = 0;
+            for (var i = 0; i < src.Length; i++)
             {
-                buffer[outputIndex++] = '_';
+                char c = src[i];
+
+                if (i > 0 && c.IsUpperFast()) 
+                    dst[w++] = '_';
+
+                // lower ASCII fast path
+                dst[w++] = (uint) (c - 'A') <= 'Z' - 'A' ? (char) (c + 32) : c.ToLowerInvariant();
             }
-
-            buffer[outputIndex++] = currentChar.ToLowerInvariant();
-        }
-
-        return outputIndex;
+        });
     }
 }

@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Diagnostics.Contracts;
-using System.Runtime.CompilerServices;
 
 namespace Soenneker.Extensions.String;
 
@@ -54,8 +54,11 @@ public static partial class StringExtension
         if (!Guid.TryParseExact(guidString, "D", out Guid guid))
             throw new FormatException("Invalid GUID format. Expected a GUID in 'D' format.");
 
-        int extracted = Unsafe.As<Guid, int>(ref guid);
+        Span<byte> bytes = stackalloc byte[16];
+        guid.TryWriteBytes(bytes); // always true for 16-byte span
 
-        return extracted & int.MaxValue;
+        // Read first 4 bytes as little-endian for stable cross-arch behavior
+        int value = BinaryPrimitives.ReadInt32LittleEndian(bytes);
+        return value & int.MaxValue; // keep non-negative
     }
 }

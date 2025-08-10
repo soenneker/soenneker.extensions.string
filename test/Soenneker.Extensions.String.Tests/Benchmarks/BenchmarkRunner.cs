@@ -12,7 +12,7 @@ public class BenchmarkRunner : BenchmarkTest
     {
     }
 
-  //  [Fact]
+   // [Fact]
     public async ValueTask IsNullOrEmpty()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<IsNullOrEmptyBenchmark>(DefaultConf);
@@ -20,7 +20,7 @@ public class BenchmarkRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-  //  [Fact]
+   // [Fact]
     public async ValueTask ToUpperInvariant()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToUpperInvariantBenchmark>(DefaultConf);
@@ -52,7 +52,7 @@ public class BenchmarkRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-  //  [Fact]
+   // [Fact]
     public async ValueTask ToBytes()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToBytesBenchmark>(DefaultConf);
@@ -60,7 +60,7 @@ public class BenchmarkRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+  //  [Fact]
     public async ValueTask ToBytesFromBase64()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToBytesFromBase64Benchmark>(DefaultConf);
@@ -68,7 +68,7 @@ public class BenchmarkRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-  //  [Fact]
+   // [Fact]
     public async ValueTask ToDashesFromWhiteSpace()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToDashesFromWhiteSpaceBenchmark>(DefaultConf);
@@ -76,7 +76,7 @@ public class BenchmarkRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-  //  [Fact]
+   // [Fact]
     public async ValueTask ToSplitId()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToSplitIdBenchmark>(DefaultConf);
@@ -84,7 +84,7 @@ public class BenchmarkRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-    //[Fact]
+   // [Fact]
     public async ValueTask ToBool()
     {
         Summary summary = BenchmarkDotNet.Running.BenchmarkRunner.Run<ToBoolBenchmark>(DefaultConf);

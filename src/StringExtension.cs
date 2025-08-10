@@ -1,10 +1,9 @@
-﻿using Soenneker.Extensions.Arrays.Bytes;
-using Soenneker.Extensions.Char;
-using Soenneker.Extensions.Stream;
+﻿using Soenneker.Extensions.Char;
 using Soenneker.Utils.Random;
 using Soenneker.Utils.RegexCollection;
 using System;
 using System.Buffers;
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
@@ -13,7 +12,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Soenneker.Extensions.String;
 
@@ -82,43 +80,38 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return value;
 
-        ReadOnlySpan<char> span = value.AsSpan();
-        int length = span.Length;
+        ReadOnlySpan<char> s = value.AsSpan();
 
-        char[]? buffer = null;
-        var idx = 0;
+        // 1) Count digits
+        var outLen = 0;
 
-        for (var i = 0; i < length; i++)
+        for (var i = 0; i < s.Length; i++)
         {
-            char c = span[i];
-
-            if (c.IsDigit())
-            {
-                if (buffer != null)
-                    buffer[idx++] = c;
-            }
-            else
-            {
-                if (buffer == null)
-                {
-                    // ❗ First non-digit detected: allocate buffer, copy previous valid chars
-                    buffer = GC.AllocateUninitializedArray<char>(length);
-                    span.Slice(0, i).CopyTo(buffer);
-                    idx = i;
-                }
-            }
+            if (s[i].IsDigit())
+                outLen++;
         }
 
-        // No non-digit characters? Return original reference (no alloc)
-        if (buffer == null)
+        // 2) No non-digits? Return original ref
+        if (outLen == s.Length)
             return value;
 
-        // All removed? Return empty
-        if (idx == 0)
+        if (outLen == 0)
             return "";
 
-        // Return new string from valid digits
-        return new string(buffer, 0, idx);
+        // 3) Create and fill
+        return string.Create(outLen, value, static (dst, src) =>
+        {
+            ReadOnlySpan<char> sp = src.AsSpan();
+            var w = 0;
+
+            for (var i = 0; i < sp.Length; i++)
+            {
+                char c = sp[i];
+
+                if (c.IsDigit())
+                    dst[w++] = c;
+            }
+        });
     }
 
     /// <summary>
@@ -133,39 +126,37 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return value;
 
-        ReadOnlySpan<char> span = value.AsSpan();
-        int length = span.Length;
+        ReadOnlySpan<char> s = value.AsSpan();
 
-        char[]? buffer = null;
-        var idx = 0;
+        // 1) Count non-whitespace
+        var outLen = 0;
 
-        for (var i = 0; i < length; i++)
+        for (var i = 0; i < s.Length; i++)
         {
-            char c = span[i];
-
-            if (!c.IsWhiteSpaceFast())
-            {
-                if (buffer != null)
-                    buffer[idx++] = c;
-            }
-            else
-            {
-                if (buffer == null)
-                {
-                    buffer = GC.AllocateUninitializedArray<char>(length);
-                    span.Slice(0, i).CopyTo(buffer);
-                    idx = i;
-                }
-            }
+            if (!char.IsWhiteSpace(s[i]))
+                outLen++;
         }
 
-        if (buffer == null)
+        // 2) Fast paths
+        if (outLen == s.Length)
             return value;
 
-        if (idx == 0)
+        if (outLen == 0)
             return "";
 
-        return new string(buffer, 0, idx);
+        // 3) Create and fill
+        return string.Create(outLen, value, static (dst, src) =>
+        {
+            ReadOnlySpan<char> sp = src.AsSpan();
+            var w = 0;
+            for (var i = 0; i < sp.Length; i++)
+            {
+                char c = sp[i];
+
+                if (!char.IsWhiteSpace(c))
+                    dst[w++] = c;
+            }
+        });
     }
 
     /// <summary>
@@ -187,39 +178,38 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return value;
 
-        ReadOnlySpan<char> span = value.AsSpan();
-        int length = span.Length;
+        ReadOnlySpan<char> s = value.AsSpan();
 
-        char[]? buffer = null;
-        var idx = 0;
+        // 1) Count survivors
+        var outLen = 0;
 
-        for (var i = 0; i < length; i++)
+        for (var i = 0; i < s.Length; i++)
         {
-            char c = span[i];
-
-            if (c != removeChar)
-            {
-                if (buffer != null)
-                    buffer[idx++] = c;
-            }
-            else
-            {
-                if (buffer == null)
-                {
-                    buffer = GC.AllocateUninitializedArray<char>(length);
-                    span.Slice(0, i).CopyTo(buffer);
-                    idx = i;
-                }
-            }
+            if (s[i] != removeChar)
+                outLen++;
         }
 
-        if (buffer == null)
+        // 2) Fast paths
+        if (outLen == s.Length)
             return value;
 
-        if (idx == 0)
-            return "";
+        if (outLen == 0)
+            return string.Empty;
 
-        return new string(buffer, 0, idx);
+        // 3) Create and fill
+        return string.Create(outLen, (value, removeChar), static (dst, st) =>
+        {
+            (string src, char rm) = st;
+            ReadOnlySpan<char> sp = src.AsSpan();
+            var w = 0;
+
+            for (var i = 0; i < sp.Length; i++)
+            {
+                char c = sp[i];
+                if (c != rm)
+                    dst[w++] = c;
+            }
+        });
     }
 
     /// <summary>
@@ -288,9 +278,14 @@ public static partial class StringExtension
     [Pure]
     public static bool ContainsAny(this string value, IList<string> values, StringComparison comparison = StringComparison.Ordinal)
     {
+        if (values is null || values.Count == 0)
+            return false;
+
         for (var i = 0; i < values.Count; i++)
         {
-            if (value.IndexOf(values[i], comparison) != -1)
+            string needle = values[i];
+
+            if (needle.HasContent() && value.IndexOf(needle, comparison) >= 0)
                 return true;
         }
 
@@ -309,13 +304,8 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty() || characters is null || characters.Length == 0)
             return false;
 
-        for (var i = 0; i < value.Length; i++)
-        {
-            if (Array.IndexOf(characters, value[i]) >= 0)
-                return true;
-        }
-
-        return false;
+        // Fast SIMD path in the runtime
+        return value.AsSpan().IndexOfAny(characters) >= 0;
     }
 
     /// <summary>
@@ -328,16 +318,23 @@ public static partial class StringExtension
     [Pure]
     public static bool EqualsAny(this string value, StringComparison comparison = StringComparison.Ordinal, params string[] strings)
     {
-        for (var i = 0; i < strings.Length; i++)
+        if (strings == null || strings.Length == 0)
+            return false;
+
+        StringComparer comparer = StringComparer.FromComparison(comparison);
+        int n = strings.Length;
+
+        for (var i = 0; i < n; i++)
         {
-            if (string.Equals(value, strings[i], comparison))
-            {
+            string s = strings[i];
+
+            if (comparer.Equals(value, s))
                 return true;
-            }
         }
 
         return false;
     }
+
 
     /// <summary>
     /// Determines whether the string is equal to any of the strings in the specified collection using the specified comparison rules.
@@ -400,23 +397,25 @@ public static partial class StringExtension
     [Pure]
     public static string ToDashesFromPeriods(this string value)
     {
-        int length = value.Length;
+        int first = value.IndexOf('.');
 
-        if (length == 0)
-            return "";
+        if (first < 0)
+            return value; // return original ref
 
-        Span<char> buffer = length <= 128 // Inline threshold (optional tuning)
-            ? stackalloc char[length]
-            : new char[length]; // fallback for large strings, no pooling to keep it simple
-
-        ReadOnlySpan<char> input = value;
-
-        for (var i = 0; i < length; i++)
+        return string.Create(value.Length, (value, first), static (Span<char> dst, (string src, int start) st) =>
         {
-            buffer[i] = input[i] == '.' ? '-' : input[i];
-        }
+            (string src, int start) = st;
+            // copy the prefix unchanged
+            src.AsSpan(0, start).CopyTo(dst);
 
-        return new string(buffer);
+            // from first '.' onward, replace per char
+            ReadOnlySpan<char> s = src.AsSpan();
+
+            for (int i = start; i < s.Length; i++)
+            {
+                dst[i] = s[i] == '.' ? '-' : s[i];
+            }
+        });
     }
 
     /// <summary>
@@ -425,22 +424,32 @@ public static partial class StringExtension
     [Pure]
     public static string ToDashesFromWhiteSpace(this string value)
     {
-        int length = value.Length;
-
-        if (length == 0)
-            return "";
-
-        Span<char> buffer = length <= 128 ? stackalloc char[length] : new char[length]; // Heap fallback for large strings
-
-        ReadOnlySpan<char> input = value;
-
-        for (var i = 0; i < length; i++)
+        int first = -1;
+        ReadOnlySpan<char> s = value.AsSpan();
+        for (var i = 0; i < s.Length; i++)
         {
-            char c = input[i];
-            buffer[i] = c.IsWhiteSpaceFast() ? '-' : c;
+            if (s[i].IsWhiteSpaceFast())
+            {
+                first = i;
+                break;
+            }
         }
 
-        return new string(buffer);
+        if (first < 0)
+            return value; // return original ref
+
+        return string.Create(value.Length, (value, first), static (Span<char> dst, (string src, int start) st) =>
+        {
+            (string src, int start) = st;
+            src.AsSpan(0, start).CopyTo(dst);
+
+            ReadOnlySpan<char> ss = src.AsSpan();
+
+            for (int i = start; i < ss.Length; i++)
+            {
+                dst[i] = ss[i].IsWhiteSpaceFast() ? '-' : ss[i];
+            }
+        });
     }
 
     /// <summary>
@@ -454,29 +463,36 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return [];
 
-        List<string> list = [];
-        ReadOnlySpan<char> span = value.AsSpan();
+        // no commas? just return [value]
+        int first = value.IndexOf(',');
+        if (first < 0)
+            return [value];
 
-        var startIndex = 0;
+        // rough capacity (upper bound). ok if we skip empties later.
+        var commas = 1; // we already found one'
 
-        for (var i = 0; i < span.Length; i++)
+        for (int i = first + 1; i < value.Length; i++)
         {
-            if (span[i] == ',')
-            {
-                if (i > startIndex) // Avoid empty strings from consecutive commas
-                {
-                    list.Add(new string(span.Slice(startIndex, i - startIndex)));
-                }
+            if (value[i] == ',')
+                commas++;
+        }
 
-                startIndex = i + 1;
+        var list = new List<string>(commas + 1);
+
+        ReadOnlySpan<char> s = value.AsSpan();
+        var start = 0;
+        for (var i = 0; i < s.Length; i++)
+        {
+            if (s[i] == ',')
+            {
+                if (i > start) // skip empty segments from ",,"
+                    list.Add(new string(s.Slice(start, i - start)));
+                start = i + 1;
             }
         }
 
-        // Add the remaining substring after the last comma
-        if (startIndex < span.Length)
-        {
-            list.Add(new string(span.Slice(startIndex)));
-        }
+        if (start < s.Length) // tail segment
+            list.Add(new string(s.Slice(start)));
 
         return list;
     }
@@ -529,57 +545,38 @@ public static partial class StringExtension
     [Pure]
     public static string ToUnixLineBreaks(this string value)
     {
-        ReadOnlySpan<char> span = value.AsSpan();
-        int length = span.Length;
-        int index = -1;
+        ReadOnlySpan<char> s = value;
+        var pairs = 0;
 
-        // Find the first occurrence of '\r\n'
-        for (var i = 0; i < length - 1; i++)
+        for (var i = 0; i + 1 < s.Length; i++)
         {
-            if (span[i] == '\r' && span[i + 1] == '\n')
+            if (s[i] == '\r' && s[i + 1] == '\n')
+                pairs++;
+        }
+
+        if (pairs == 0)
+            return value; // return original ref
+
+        int outLen = s.Length - pairs;
+
+        // state is the original string (class, OK) — not a ReadOnlySpan<char>
+        return string.Create(outLen, value, static (dst, src) =>
+        {
+            ReadOnlySpan<char> ss = src.AsSpan();
+            var w = 0;
+            for (var r = 0; r < ss.Length; r++)
             {
-                index = i;
-                break;
+                if (r + 1 < ss.Length && ss[r] == '\r' && ss[r + 1] == '\n')
+                {
+                    dst[w++] = '\n';
+                    r++; // skip '\n'
+                }
+                else
+                {
+                    dst[w++] = ss[r];
+                }
             }
-        }
-
-        // If no '\r\n' found, return the original string
-        if (index == -1)
-            return value;
-
-        // Determine whether to use stackalloc or ArrayPool
-        if (length <= _stackallocThreshold)
-        {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length - 1];
-
-            // Copy the initial part before '\r\n'
-            span.Slice(0, index).CopyTo(buffer);
-
-            // Copy the remaining part after '\r\n'
-            span.Slice(index + 1).CopyTo(buffer.Slice(index));
-
-            return new string(buffer);
-        }
-
-        // Use ArrayPool for larger strings
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length - 1);
-
-        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length - 1);
-
-        // Copy the initial part before '\r\n'
-        span.Slice(0, index).CopyTo(bufferSpan);
-
-        // Copy the remaining part after '\r\n'
-        span.Slice(index + 1).CopyTo(bufferSpan.Slice(index));
-
-        var result = new string(bufferSpan);
-
-        // Explicitly return the buffer to the pool
-        pool.Return(rentedBuffer);
-
-        return result;
+        });
     }
 
     /// <summary>
@@ -882,13 +879,11 @@ public static partial class StringExtension
         byte[] buffer = GC.AllocateUninitializedArray<byte>(byteCount);
 
         // Encode directly into the buffer.
-        Encoding.UTF8.GetBytes(str.AsSpan(), buffer.AsSpan());
+        Encoding.UTF8.GetBytes(str.AsSpan(), buffer);
 
         // Wrap the buffer in a read-only MemoryStream.
         // The 'publiclyVisible' parameter (last bool) allows direct array access via GetBuffer(); 
-        var stream = new MemoryStream(buffer, 0, buffer.Length);
-        stream.ToStart();
-        return stream;
+        return new MemoryStream(buffer, 0, buffer.Length);
     }
 
     /// <summary>
@@ -896,9 +891,79 @@ public static partial class StringExtension
     /// </summary>
     /// <remarks>Equivalent to <code>Convert.FromBase64String(str).ToStr()</code></remarks>
     [Pure]
-    public static string ToStringFromEncoded64(this string str)
+    public static string ToStringFromBase64(this string s)
     {
-        return str.ToBytesFromBase64().ToStr();
+        if (s.IsNullOrWhiteSpace())
+            return "";
+
+        // Normalize Base64URL (-,_ ) -> Base64 (+,/), add padding if needed
+        if (s.IndexOf('-') >= 0 || s.IndexOf('_') >= 0)
+        {
+            s = s.Replace('-', '+').Replace('_', '/');
+            int pad = s.Length % 4;
+
+            if (pad == 2)
+                s += "==";
+            else if (pad == 3)
+                s += "=";
+            else if (pad == 1)
+                throw new FormatException("Invalid Base64URL length.");
+        }
+
+        int maxLen = s.Length * 3 / 4; // upper bound
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(maxLen);
+
+        try
+        {
+            if (!Convert.TryFromBase64String(s, buffer, out int bytesWritten))
+                throw new FormatException("Invalid Base64 data.");
+
+            return Encoding.UTF8.GetString(buffer, 0, bytesWritten);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+        }
+    }
+
+    /// <summary>
+    /// Takes a UTF8 string, converts it to a byte array using UTF8 encoding, and then converts that byte array to a Base64 encoded string.
+    /// </summary>
+    /// <param name="str"></param>
+    /// <returns></returns>
+    public static string ToBase64(this string str)
+    {
+        ReadOnlySpan<char> chars = str;
+        int utf8Len = Encoding.UTF8.GetByteCount(chars);
+
+        byte[]? utf8Array = null;
+        Span<byte> utf8 = utf8Len <= 512 ? stackalloc byte[utf8Len] : (utf8Array = ArrayPool<byte>.Shared.Rent(utf8Len));
+
+        try
+        {
+            Encoding.UTF8.GetBytes(chars, utf8);
+
+            int max64 = Base64.GetMaxEncodedToUtf8Length(utf8Len);
+
+            byte[]? b64Array = null;
+            Span<byte> b64 = max64 <= 1024 ? stackalloc byte[max64] : (b64Array = ArrayPool<byte>.Shared.Rent(max64));
+
+            try
+            {
+                Base64.EncodeToUtf8(utf8.Slice(0, utf8Len), b64, out _, out int written);
+                return Encoding.ASCII.GetString(b64.Slice(0, written));
+            }
+            finally
+            {
+                if (b64Array != null)
+                    ArrayPool<byte>.Shared.Return(b64Array);
+            }
+        }
+        finally
+        {
+            if (utf8Array != null)
+                ArrayPool<byte>.Shared.Return(utf8Array);
+        }
     }
 
     /// <summary>
@@ -908,29 +973,24 @@ public static partial class StringExtension
     [Pure]
     public static List<string>? ToIds(this string? value)
     {
-        int length = value?.Length ?? 0;
-
-        if (length == 0)
+        if (value.IsNullOrEmpty())
             return null;
 
-        if (length <= _stackallocThreshold)
+        ReadOnlySpan<char> s = value.AsSpan();
+        var list = new List<string>(Math.Max(1, s.Length / 8)); // tiny pre-size guess
+
+        var start = 0;
+        for (var i = 0; i < s.Length; i++)
         {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
-            return ParseIds(value.AsSpan(), buffer);
+            if (s[i] == ':')
+            {
+                list.Add(new string(s.Slice(start, i - start)));
+                start = i + 1;
+            }
         }
 
-        // Use ArrayPool for larger strings
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
-
-        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
-        List<string> result = ParseIds(value.AsSpan(), bufferSpan);
-
-        // Return the buffer to the pool after use
-        pool.Return(rentedBuffer);
-
-        return result;
+        list.Add(new string(s.Slice(start)));
+        return list;
     }
 
     // Helper method to parse IDs into a list
@@ -1072,11 +1132,8 @@ public static partial class StringExtension
     /// <exception cref="ArgumentException">Thrown when the input string is empty.</exception>
     public static void ThrowIfNullOrEmpty(this string? input, [CallerMemberName] string? name = null)
     {
-        if (input is null)
-            throw new ArgumentNullException(name, "String cannot be null");
-
-        if (input.Length == 0)
-            throw new ArgumentException("String cannot be empty", name);
+        if (input.IsNullOrEmpty())
+            throw input is null ? new ArgumentNullException(name, "String cannot be null") : new ArgumentException("String cannot be empty", name);
     }
 
     /// <summary>
@@ -1102,49 +1159,19 @@ public static partial class StringExtension
     [Pure]
     public static string Mask(this string input)
     {
-        int length = input?.Length ?? 0;
+        int len = input?.Length ?? 0;
+        if (len == 0) return "";
+        if (len <= 6) return new string('*', len);
 
-        if (length == 0)
-            return "";
+        int maskLen = Math.Max(0, len - 3);
+        int visLen = Math.Min(13, len - maskLen);
 
-        if (length <= 6)
-            return new string('*', length);
-
-        int maskLength = Math.Max(0, length - 3);
-        int visibleLength = Math.Min(13, length - maskLength);
-
-        if (length <= _stackallocThreshold)
+        return string.Create(len, (input, maskLen, visLen), static (dst, st) =>
         {
-            // Use stackalloc for small strings
-            Span<char> buffer = stackalloc char[length];
-
-            // Fill masked part with '*'
-            buffer.Slice(0, maskLength).Fill('*');
-
-            // Copy the visible part
-            input.AsSpan(maskLength, visibleLength).CopyTo(buffer.Slice(maskLength));
-
-            return new string(buffer);
-        }
-
-        // Use ArrayPool for larger strings
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
-
-        Span<char> bufferSpan = rentedBuffer.AsSpan(0, length);
-
-        // Fill masked part with '*'
-        bufferSpan.Slice(0, maskLength).Fill('*');
-
-        // Copy the visible part
-        input.AsSpan(maskLength, visibleLength).CopyTo(bufferSpan.Slice(maskLength));
-
-        var result = new string(bufferSpan.Slice(0, length));
-
-        // Explicitly return the rented buffer
-        pool.Return(rentedBuffer);
-
-        return result;
+            (string? src, int m, int v) = st;
+            dst.Slice(0, m).Fill('*');
+            src.AsSpan(m, v).CopyTo(dst.Slice(m));
+        });
     }
 
     /// <summary>
@@ -1364,21 +1391,31 @@ public static partial class StringExtension
         if (input.IsNullOrWhiteSpace())
             return input;
 
-        ReadOnlySpan<char> span = input.AsSpan().Trim();
+        ReadOnlySpan<char> s = input.AsSpan().Trim();
 
-        // Remove opening code block marker (```lang\n or ```\n)
-        Match match = RegexCollection.MarkdownCodeFence().Match(span.ToString());
-
-        if (match is {Success: true, Index: 0})
-            span = span.Slice(match.Length);
-
-        // Remove closing code block if present at the end
-        if (span.EndsWith("```".AsSpan()))
+        // opening: ```[lang]? \r?\n
+        var start = 0;
+        if (s.StartsWith("```".AsSpan()))
         {
-            span = span.Slice(0, span.LastIndexOf("```".AsSpan(), StringComparison.Ordinal));
-            span = span.TrimEnd();
+            var i = 3;
+            while (i < s.Length && s[i] != '\n' && s[i] != '\r') i++;
+            if (i < s.Length)
+            {
+                if (s[i] == '\r' && i + 1 < s.Length && s[i + 1] == '\n') i++;
+                start = i + 1;
+            }
         }
 
-        return span.ToString();
+        // closing: trailing ```
+        int end = s.Length;
+        if (end >= 3 && s.Slice(end - 3).SequenceEqual("```".AsSpan()))
+        {
+            end -= 3;
+            // trim trailing whitespace before ```
+            while (end > start && char.IsWhiteSpace(s[end - 1])) end--;
+        }
+
+        ReadOnlySpan<char> span = s.Slice(start, Math.Max(0, end - start));
+        return new string(span);
     }
 }
