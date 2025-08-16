@@ -1418,4 +1418,50 @@ public static partial class StringExtension
         ReadOnlySpan<char> span = s.Slice(start, Math.Max(0, end - start));
         return new string(span);
     }
+
+    /// <summary>
+    /// Attempts to determine the correct <see cref="Encoding"/> from a response or request
+    /// <c>Content-Type</c> header string.  
+    /// </summary>
+    /// <param name="contentType">
+    /// The Content-Type header value, such as <c>"application/json; charset=utf-16"</c>.  
+    /// If <c>null</c> or no valid <c>charset</c> is specified, UTF-8 is returned.
+    /// </param>
+    /// <returns>
+    /// A <see cref="Encoding"/> instance representing the declared <c>charset</c>, or
+    /// <see cref="Encoding.UTF8"/> if no charset is specified or the charset is invalid.
+    /// </returns>
+    /// <remarks>
+    /// This method performs lightweight parsing of the <c>charset=</c> parameter.  
+    /// Any exceptions when resolving the encoding (e.g., unsupported or malformed values) 
+    /// are caught and ignored, falling back to UTF-8.
+    /// </remarks>
+    public static Encoding GetEncoding(this string? contentType)
+    {
+        if (contentType.IsNullOrEmpty())
+            return Encoding.UTF8;
+
+        ReadOnlySpan<char> s = contentType.AsSpan();
+        int idx = s.IndexOf("charset=", StringComparison.OrdinalIgnoreCase);
+
+        if (idx < 0) 
+            return Encoding.UTF8;
+
+        ReadOnlySpan<char> rest = s.Slice(idx + "charset=".Length);
+        int semi = rest.IndexOf(';');
+
+        if (semi >= 0) 
+            rest = rest.Slice(0, semi);
+
+        rest = rest.Trim();
+
+        try
+        {
+            return Encoding.GetEncoding(rest.ToString()); // unavoidable lookup string
+        }
+        catch
+        {
+            return Encoding.UTF8;
+        }
+    }
 }

@@ -280,6 +280,7 @@ public static partial class StringExtension
             return input;
 
         var underscores = 0;
+
         for (var i = 1; i < len; i++)
         {
             if (input[i].IsUpperFast())
@@ -287,7 +288,7 @@ public static partial class StringExtension
         }
 
         if (underscores == 0)
-            return input.ToLowerInvariant(); // nothing to split; just lower
+            return input.ToLowerInvariantFast(); // nothing to split; just lower
 
         int outLen = len + underscores;
 
