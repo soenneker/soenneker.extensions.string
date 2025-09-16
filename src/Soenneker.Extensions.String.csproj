@@ -1,4 +1,6 @@
-﻿<?xml version="1.0" encoding="utf-8"?><Project Sdk="Microsoft.NET.Sdk">
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFrameworks>net9.0</TargetFrameworks>
@@ -7,6 +9,7 @@
         <NoWarn>$(NoWarn);1591</NoWarn>
         <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
         <AnalysisLevel>latest</AnalysisLevel>
+        <LangVersion>latest</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup>
@@ -34,15 +37,16 @@
         <LangVersion>latest</LangVersion>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild></PropertyGroup>
-    
+        <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\" />
         <None Include="..\LICENSE" Pack="true" PackagePath="\" />
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
         <PackageReference Include="Soenneker.Culture.English.US" Version="3.0.30" />
         <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="3.0.41" />
-        <PackageReference Include="Soenneker.Extensions.Char" Version="3.0.76" />
+        <PackageReference Include="Soenneker.Extensions.Char" Version="3.0.77" />
         <PackageReference Include="Soenneker.Utils.Random" Version="3.0.94" />
         <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.77" />
     </ItemGroup>

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers.Binary;
 using System.Diagnostics.Contracts;
+using System.Runtime.CompilerServices;
 
 namespace Soenneker.Extensions.String;
 
@@ -10,6 +11,7 @@ public static partial class StringExtension
     /// Does not check for empty GUID, <see cref="IsValidPopulatedGuid"/> for this.
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidGuid(this string? input)
     {
         return Guid.TryParse(input, out _);
@@ -19,6 +21,7 @@ public static partial class StringExtension
     /// Makes sure result is not an empty GUID.
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidPopulatedGuid(this string? input)
     {
         return Guid.TryParse(input, out Guid result) && result != Guid.Empty;
@@ -28,6 +31,7 @@ public static partial class StringExtension
     /// Does not check for empty GUID, <see cref="IsValidPopulatedNullableGuid"/> for this.
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidNullableGuid(this string? input)
     {
         return input is null || Guid.TryParse(input, out _);
@@ -37,6 +41,7 @@ public static partial class StringExtension
     /// Makes sure result is not an empty GUID.
     /// </summary>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidPopulatedNullableGuid(this string? input)
     {
         return input is null || (Guid.TryParse(input, out Guid result) && result != Guid.Empty);

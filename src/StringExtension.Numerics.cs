@@ -1,8 +1,9 @@
-﻿using System;
+﻿using Soenneker.Culture.English.US;
+using Soenneker.Extensions.Char;
+using System;
 using System.Diagnostics.Contracts;
 using System.Globalization;
-using Soenneker.Culture.English.US;
-using Soenneker.Extensions.Char;
+using System.Runtime.CompilerServices;
 
 namespace Soenneker.Extensions.String;
 
@@ -14,16 +15,18 @@ public static partial class StringExtension
     /// <param name="value">The string to check.</param>
     /// <returns>True if the string is numeric, otherwise false.</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNumeric(this string? value)
     {
-        ReadOnlySpan<char> span = value;
-
-        if (span.IsEmpty)
+        if (string.IsNullOrEmpty(value))
             return false;
 
-        for (var i = 0; i < span.Length; i++)
+        ReadOnlySpan<char> s = value; // implicit conversion; null becomes default (handled above)
+
+        for (var i = 0; i < s.Length; i++)
         {
-            if (!span[i].IsDigit())
+            // Branchless ASCII digit check
+            if ((uint)(s[i] - '0') > 9u)
                 return false;
         }
 
@@ -36,19 +39,14 @@ public static partial class StringExtension
     /// <param name="value">The string to convert.</param>
     /// <returns>A <see cref="Nullable{Double}"/> that represents the converted nullable double-precision floating-point number if the conversion succeeds; otherwise, <c>null</c>.</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double? ToDouble(this string? value)
     {
-        ReadOnlySpan<char> s = value.AsSpan().Trim();
+        // Let TryParse handle whitespace to avoid a separate Trim() pass
+        const NumberStyles styles = NumberStyles.Float | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
 
-        if (s.IsEmpty)
-            return null;
-
-        const NumberStyles styles = NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign | NumberStyles.AllowLeadingWhite |
-                                    NumberStyles.AllowTrailingWhite;
-
-        return double.TryParse(s, styles, CultureEnUsCache.Instance, out double result) ? result : null;
+        return double.TryParse(value, styles, CultureEnUsCache.Instance, out double result) ? result : null;
     }
-
 
     /// <summary>
     /// Converts the string representation of a number to its nullable decimal equivalent.
@@ -56,17 +54,13 @@ public static partial class StringExtension
     /// <param name="value">The string to convert.</param>
     /// <returns>A <see cref="Nullable{Decimal}"/> that represents the converted nullable decimal number if the conversion succeeds; otherwise, <c>null</c>.</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static decimal? ToDecimal(this string? value)
     {
-        ReadOnlySpan<char> s = value.AsSpan().Trim();
+        // Same rationale as ToDouble; NumberStyles.Float works for decimal too
+        const NumberStyles styles = NumberStyles.Float | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
 
-        if (s.IsEmpty)
-            return null;
-
-        const NumberStyles styles = NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign | NumberStyles.AllowLeadingWhite |
-                                    NumberStyles.AllowTrailingWhite;
-
-        return decimal.TryParse(s, styles, CultureEnUsCache.Instance, out decimal v) ? v : null;
+        return decimal.TryParse(value, styles, CultureEnUsCache.Instance, out decimal result) ? result : null;
     }
 
     /// <summary>
@@ -79,13 +73,11 @@ public static partial class StringExtension
     /// <param name="str">The string to convert to an integer. Can be null.</param>
     /// <returns>An integer value if the string can be parsed; otherwise, 0.</returns>
     [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ToInt(this string? str)
     {
-        ReadOnlySpan<char> s = str.AsSpan().Trim();
+        const NumberStyles styles = NumberStyles.Integer | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
 
-        if (s.IsEmpty)
-            return 0;
-
-        return int.TryParse(s, NumberStyles.Integer, CultureEnUsCache.Instance, out int v) ? v : 0;
+        return int.TryParse(str, styles, CultureEnUsCache.Instance, out int v) ? v : 0;
     }
 }
