@@ -45,7 +45,7 @@
         <None Include="..\LICENSE" Pack="true" PackagePath="\" />
         <None Include="..\icon.png" Pack="true" PackagePath="\" />
         <PackageReference Include="Soenneker.Culture.English.US" Version="4.0.31" />
-        <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="3.0.41" />
+        <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="4.0.42" />
         <PackageReference Include="Soenneker.Extensions.Char" Version="4.0.79" />
         <PackageReference Include="Soenneker.Utils.Random" Version="4.0.96" />
         <PackageReference Include="Soenneker.Utils.RegexCollection" Version="3.0.77" />
