@@ -1,4 +1,4 @@
-﻿using Soenneker.Extensions.Char;
+using Soenneker.Extensions.Char;
 using Soenneker.Utils.Random;
 using System;
 using System.Buffers;
@@ -966,8 +966,35 @@ public static partial class StringExtension
         // Normalize Base64URL (-,_ ) -> Base64 (+,/), add padding if needed
         if (s.IndexOf('-') >= 0 || s.IndexOf('_') >= 0)
         {
-            s = s.Replace('-', '+')
-                .Replace('_', '/');
+            // Use single-pass replacement to avoid intermediate string allocations
+            ReadOnlySpan<char> input = s.AsSpan();
+            int first = -1;
+            for (var i = 0; i < input.Length; i++)
+            {
+                if (input[i] == '-' || input[i] == '_')
+                {
+                    first = i;
+                    break;
+                }
+            }
+
+            if (first >= 0)
+            {
+                s = string.Create(input.Length, s, static (dst, src) =>
+                {
+                    ReadOnlySpan<char> sp = src.AsSpan();
+                    for (var i = 0; i < sp.Length; i++)
+                    {
+                        dst[i] = sp[i] switch
+                        {
+                            '-' => '+',
+                            '_' => '/',
+                            _ => sp[i]
+                        };
+                    }
+                });
+            }
+
             int pad = s.Length % 4;
 
             if (pad == 2)
@@ -1045,7 +1072,14 @@ public static partial class StringExtension
             return null;
 
         ReadOnlySpan<char> s = value.AsSpan();
-        var list = new List<string>(Math.Max(1, s.Length / 8)); // tiny pre-size guess
+        // Pre-count colons to estimate capacity
+        int colonCount = 0;
+        for (var i = 0; i < s.Length; i++)
+        {
+            if (s[i] == ':')
+                colonCount++;
+        }
+        var list = new List<string>(colonCount + 1);
 
         var start = 0;
         for (var i = 0; i < s.Length; i++)
