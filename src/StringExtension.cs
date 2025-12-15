@@ -1,4 +1,5 @@
 using Soenneker.Extensions.Char;
+using Soenneker.Extensions.Spans.Readonly.Chars;
 using Soenneker.Utils.Random;
 using System;
 using System.Buffers;
@@ -79,7 +80,8 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveNonDigits(this string? value)
     {
-        if (value.IsNullOrEmpty()) return value;
+        if (value.IsNullOrEmpty())
+            return value;
         ReadOnlySpan<char> s = value.AsSpan();
 
         // Small strings: single pass to stack buffer, detect “no change”
@@ -149,7 +151,8 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveWhiteSpace(this string? value)
     {
-        if (value.IsNullOrEmpty()) return value;
+        if (value.IsNullOrEmpty())
+            return value;
 
         ReadOnlySpan<char> s = value;
         int first = -1;
@@ -160,7 +163,8 @@ public static partial class StringExtension
                 break;
             }
 
-        if (first < 0) return value; // no changes
+        if (first < 0)
+            return value; // no changes
 
         // compute length while copying tail in one pass
         int outLen = first;
@@ -168,7 +172,8 @@ public static partial class StringExtension
             if (!char.IsWhiteSpace(s[i]))
                 outLen++;
 
-        if (outLen == 0) return string.Empty;
+        if (outLen == 0)
+            return string.Empty;
 
         return string.Create(outLen, (value, first), static (dst, st) =>
         {
@@ -180,7 +185,8 @@ public static partial class StringExtension
             for (int i = start + 1; i < sp.Length; i++)
             {
                 char c = sp[i];
-                if (!char.IsWhiteSpace(c)) dst[w++] = c;
+                if (!char.IsWhiteSpace(c))
+                    dst[w++] = c;
             }
         });
     }
@@ -201,18 +207,21 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveAllChar(this string? value, char removeChar)
     {
-        if (value.IsNullOrEmpty()) return value;
+        if (value.IsNullOrEmpty())
+            return value;
 
         ReadOnlySpan<char> s = value;
         int first = s.IndexOf(removeChar);
-        if (first < 0) return value;
+        if (first < 0)
+            return value;
 
         int outLen = first;
         for (int i = first + 1; i < s.Length; i++)
             if (s[i] != removeChar)
                 outLen++;
 
-        if (outLen == 0) return string.Empty;
+        if (outLen == 0)
+            return string.Empty;
 
         return string.Create(outLen, (value, first, removeChar), static (dst, st) =>
         {
@@ -224,7 +233,8 @@ public static partial class StringExtension
             for (int i = start + 1; i < sp.Length; i++)
             {
                 char c = sp[i];
-                if (c != rm) dst[w++] = c;
+                if (c != rm)
+                    dst[w++] = c;
             }
         });
     }
@@ -234,7 +244,7 @@ public static partial class StringExtension
     /// </summary>
     /// <param name="value">The input string.</param>
     /// <returns>A new string that contains only the non-white-space characters from the original string.</returns>
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveDashes(this string? value)
     {
@@ -326,7 +336,7 @@ public static partial class StringExtension
 
         // Fast SIMD path in the runtime
         return value.AsSpan()
-            .IndexOfAny(characters) >= 0;
+                    .IndexOfAny(characters) >= 0;
     }
 
     /// <summary>
@@ -406,7 +416,7 @@ public static partial class StringExtension
             (string src, int start) = st;
             // copy the prefix unchanged
             src.AsSpan(0, start)
-                .CopyTo(dst);
+               .CopyTo(dst);
 
             // from first '.' onward, replace per char
             ReadOnlySpan<char> s = src.AsSpan();
@@ -443,7 +453,7 @@ public static partial class StringExtension
         {
             (string src, int start) = st;
             src.AsSpan(0, start)
-                .CopyTo(dst);
+               .CopyTo(dst);
 
             ReadOnlySpan<char> ss = src.AsSpan();
 
@@ -458,48 +468,42 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Splits a comma-separated string into a list of substrings. Spaces are not expected.
+    /// Converts a comma-separated string into a list of trimmed, non-empty substrings.
     /// </summary>
-    /// <param name="value">The comma-separated string to split.</param>
-    /// <returns>A list containing the substrings separated by commas.</returns>
+    /// <remarks>Empty entries and whitespace-only substrings are ignored in the resulting list.</remarks>
+    /// <param name="value">The comma-separated string to parse. Can be null.</param>
+    /// <returns>A list of trimmed, non-empty substrings parsed from the input. Returns an empty list if the input is null or
+    /// contains no non-empty values.</returns>
     [Pure]
-    public static List<string> FromCommaSeparatedToList(this string value)
+    public static List<string> FromCommaSeparatedToList(this string? value)
     {
-        if (value.IsNullOrEmpty())
+        string[]? arr = value.SplitTrimmedNonEmpty(',');
+
+        if (arr is null)
             return [];
 
-        // no commas? just return [value]
-        int first = value.IndexOf(',');
-        if (first < 0)
-            return [value];
+        var list = new List<string>(arr.Length);
 
-        // rough capacity (upper bound). ok if we skip empties later.
-        var commas = 1; // we already found one'
-
-        for (int i = first + 1; i < value.Length; i++)
-        {
-            if (value[i] == ',')
-                commas++;
-        }
-
-        var list = new List<string>(commas + 1);
-
-        ReadOnlySpan<char> s = value.AsSpan();
-        var start = 0;
-        for (var i = 0; i < s.Length; i++)
-        {
-            if (s[i] == ',')
-            {
-                if (i > start) // skip empty segments from ",,"
-                    list.Add(new string(s.Slice(start, i - start)));
-                start = i + 1;
-            }
-        }
-
-        if (start < s.Length) // tail segment
-            list.Add(new string(s[start..]));
-
+        list.AddRange(arr);
         return list;
+    }
+
+    /// <summary>
+    /// Splits the specified string into an array of non-empty, trimmed substrings based on the given delimiter.
+    /// </summary>
+    /// <param name="value">The string to split. Can be null or contain only whitespace.</param>
+    /// <param name="delimiter">The character to use as the delimiter for splitting the string.</param>
+    /// <returns>An array of non-empty, trimmed substrings, or null if the input is null, contains only whitespace, or no
+    /// non-empty substrings are found.</returns>
+    [Pure]
+    public static string[]? SplitTrimmedNonEmpty(this string? value, char delimiter)
+    {
+        if (value.IsNullOrWhiteSpace())
+            return null;
+
+        string[] arr = value.AsSpan()
+                            .SplitTrimmedNonEmpty(delimiter);
+        return arr.Length == 0 ? null : arr;
     }
 
     /// <summary>
@@ -523,7 +527,7 @@ public static partial class StringExtension
     /// <remarks>Equivalent to Convert.FromBase64String(value)</remarks>
     /// <param name="value"></param>
     /// <returns></returns>
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToBytesFromBase64(this string value)
     {
         // Handle null or empty up front.
@@ -539,6 +543,7 @@ public static partial class StringExtension
     /// <remarks>Equivalent to Convert.FromHexString(value)</remarks>
     /// <param name="hex"></param>
     /// <returns></returns>
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToBytesFromHex(this string hex)
     {
         if (hex.IsNullOrEmpty())
@@ -592,7 +597,7 @@ public static partial class StringExtension
     /// </summary>
     /// <param name="value">The input zip code string.</param>
     /// <returns>The short form of the zip code.</returns>
-    [Pure]
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string ToShortZipCode(this string value)
     {
         int index = value.IndexOf('-');
@@ -617,7 +622,7 @@ public static partial class StringExtension
             // Use stackalloc for small strings
             Span<char> buffer = stackalloc char[length];
             value.AsSpan()
-                .CopyTo(buffer);
+                 .CopyTo(buffer);
 
             PerformShuffle(buffer);
             return new string(buffer);
@@ -629,7 +634,7 @@ public static partial class StringExtension
 
         Span<char> spanBuffer = rentedBuffer.AsSpan(0, length);
         value.AsSpan()
-            .CopyTo(spanBuffer);
+             .CopyTo(spanBuffer);
 
         PerformShuffle(spanBuffer);
 
@@ -674,7 +679,7 @@ public static partial class StringExtension
             // Use stackalloc for small strings
             Span<char> buffer = stackalloc char[length];
             value.AsSpan()
-                .CopyTo(buffer);
+                 .CopyTo(buffer);
 
             PerformSecureShuffle(buffer);
             return new string(buffer);
@@ -686,7 +691,7 @@ public static partial class StringExtension
 
         Span<char> spanBuffer = rentedBuffer.AsSpan(0, length);
         value.AsSpan()
-            .CopyTo(spanBuffer);
+             .CopyTo(spanBuffer);
 
         PerformSecureShuffle(spanBuffer);
 
@@ -839,7 +844,8 @@ public static partial class StringExtension
             char c = s[i];
 
             // Fast ASCII lowercase
-            if ((uint)(c - 'A') <= 25) c = (char)(c + 32);
+            if ((uint)(c - 'A') <= 25)
+                c = (char)(c + 32);
 
             if ((uint)c <= 0x7F)
             {
@@ -860,7 +866,8 @@ public static partial class StringExtension
                 // underscores keep underscore-run unless a dash/space appears later
                 if (c == '_')
                 {
-                    if (sepState == 0) sepState = 1;
+                    if (sepState == 0)
+                        sepState = 1;
                     continue;
                 }
 
@@ -1079,6 +1086,7 @@ public static partial class StringExtension
             if (s[i] == ':')
                 colonCount++;
         }
+
         var list = new List<string>(colonCount + 1);
 
         var start = 0;
@@ -1203,7 +1211,8 @@ public static partial class StringExtension
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ToBool(this string? value)
     {
-        if (bool.TryParse(value, out bool b)) return b;
+        if (bool.TryParse(value, out bool b))
+            return b;
         // cheap path for "1"
         return value is { Length: 1 } v && v[0] == '1';
     }
@@ -1245,8 +1254,10 @@ public static partial class StringExtension
     public static string Mask(this string input)
     {
         int len = input?.Length ?? 0;
-        if (len == 0) return "";
-        if (len <= 6) return new string('*', len);
+        if (len == 0)
+            return "";
+        if (len <= 6)
+            return new string('*', len);
 
         int maskLen = Math.Max(0, len - 3);
         int visLen = Math.Min(13, len - maskLen);
@@ -1257,7 +1268,7 @@ public static partial class StringExtension
             dst[..m]
                 .Fill('*');
             src.AsSpan(m, v)
-                .CopyTo(dst[m..]);
+               .CopyTo(dst[m..]);
         });
     }
 
@@ -1280,14 +1291,14 @@ public static partial class StringExtension
 
             spanNumber[0] = '(';
             str.AsSpan(offset, 3)
-                .CopyTo(spanNumber.Slice(1, 3));
+               .CopyTo(spanNumber.Slice(1, 3));
             spanNumber[4] = ')';
             spanNumber[5] = ' ';
             str.AsSpan(offset + 3, 3)
-                .CopyTo(spanNumber.Slice(6, 3));
+               .CopyTo(spanNumber.Slice(6, 3));
             spanNumber[9] = '-';
             str.AsSpan(offset + 6, 4)
-                .CopyTo(spanNumber.Slice(10, 4));
+               .CopyTo(spanNumber.Slice(10, 4));
 
             return new string(spanNumber);
         }
@@ -1409,8 +1420,8 @@ public static partial class StringExtension
         // Remove the leading '.' and convert to lower case
         return extension[0] == '.'
             ? extension.AsSpan(1)
-                .ToString()
-                .ToLowerInvariantFast()
+                       .ToString()
+                       .ToLowerInvariantFast()
             : extension.ToLowerInvariantFast();
     }
 
@@ -1508,17 +1519,19 @@ public static partial class StringExtension
             return input;
 
         ReadOnlySpan<char> s = input.AsSpan()
-            .Trim();
+                                    .Trim();
 
         // opening: ```[lang]? \r?\n
         var start = 0;
         if (s.StartsWith("```".AsSpan()))
         {
             var i = 3;
-            while (i < s.Length && s[i] != '\n' && s[i] != '\r') i++;
+            while (i < s.Length && s[i] != '\n' && s[i] != '\r')
+                i++;
             if (i < s.Length)
             {
-                if (s[i] == '\r' && i + 1 < s.Length && s[i + 1] == '\n') i++;
+                if (s[i] == '\r' && i + 1 < s.Length && s[i + 1] == '\n')
+                    i++;
                 start = i + 1;
             }
         }
@@ -1530,7 +1543,8 @@ public static partial class StringExtension
         {
             end -= 3;
             // trim trailing whitespace before ```
-            while (end > start && char.IsWhiteSpace(s[end - 1])) end--;
+            while (end > start && char.IsWhiteSpace(s[end - 1]))
+                end--;
         }
 
         ReadOnlySpan<char> span = s.Slice(start, Math.Max(0, end - start));
