@@ -48,7 +48,7 @@
 
     <ItemGroup>
         <PackageReference Include="Soenneker.Culture.English.US" Version="4.0.34" />
-        <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="4.0.44" />
+        <PackageReference Include="Soenneker.Extensions.Arrays.Bytes" Version="4.0.45" />
         <PackageReference Include="Soenneker.Extensions.Char" Version="4.0.81" />
         <PackageReference Include="Soenneker.Extensions.Spans.Readonly.Chars" Version="4.0.16" />
         <PackageReference Include="Soenneker.Utils.Random" Version="4.0.102" />
