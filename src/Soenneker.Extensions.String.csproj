@@ -52,6 +52,6 @@
         <PackageReference Include="Soenneker.Extensions.Char" Version="4.0.81" />
         <PackageReference Include="Soenneker.Extensions.Spans.Readonly.Chars" Version="4.0.15" />
         <PackageReference Include="Soenneker.Utils.Random" Version="4.0.102" />
-        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="4.0.79" />
+        <PackageReference Include="Soenneker.Utils.RegexCollection" Version="4.0.80" />
     </ItemGroup>
 </Project>
