@@ -422,9 +422,16 @@ public static partial class StringExtension
         return dto.ToUniversalTime();
     }
 
+    private static readonly string[] _isoDateTimeOffsetFormats =
+    [
+        "O", // 2024-10-03T13:40:34.5299422Z or +00:00
+        "yyyy-MM-dd'T'HH:mm:ssK",
+        "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"
+    ];
+    
     /// <summary>
     /// Strict ISO-8601 parse (recommended for APIs). Handles "Z" and explicit offsets reliably.
-    /// If no offset is present, it will assume local (by design, to mirror your current behavior).
+    /// If no offset is present, it will assume local.
     /// </summary>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTimeOffset? ToIsoDateTimeOffset(this string? value)
@@ -432,16 +439,8 @@ public static partial class StringExtension
         if (value.IsNullOrWhiteSpace())
             return null;
 
-        // "O" round-trip is the best default, but allow a few common ISO shapes too.
-        ReadOnlySpan<string> formats =
-        [
-            "O", // 2024-10-03T13:40:34.5299422Z or +00:00
-            "yyyy-MM-dd'T'HH:mm:ssK",
-            "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"
-        ];
-
-        return DateTimeOffset.TryParseExact(value, formats.ToArray(), // (see note below if you want to avoid this allocation)
-            CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dto)
+        return DateTimeOffset.TryParseExact(value, _isoDateTimeOffsetFormats,
+            CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset dto)
             ? dto
             : null;
     }
