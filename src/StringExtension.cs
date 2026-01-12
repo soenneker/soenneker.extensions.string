@@ -1081,7 +1081,7 @@ public static partial class StringExtension
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+            ArrayPool<byte>.Shared.Return(buffer);
         }
     }
 
