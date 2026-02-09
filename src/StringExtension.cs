@@ -1364,6 +1364,15 @@ public static partial class StringExtension
     }
 
     /// <summary>
+    /// Counts the number of occurrences of a specified character within the string.
+    /// </summary>
+    /// <param name="s">The string in which to count occurrences of the specified character. This parameter cannot be null.</param>
+    /// <param name="c">The character to count within the string.</param>
+    /// <returns>The total number of times the specified character appears in the string.</returns>
+    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int CountChar(this string s, char c) => s.AsSpan().CountChar(c);
+
+    /// <summary>
     /// Sanitizes the input phone number by removing all non-numeric characters,
     /// except for a leading plus sign if present.
     /// </summary>
