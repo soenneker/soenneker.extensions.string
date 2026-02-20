@@ -42,7 +42,6 @@ public static partial class StringExtension
         if (length >= value.Length)
             return value;
 
-        // If the requested length <= 0, return empty (or you could throw, depending on your needs).
         if (length <= 0)
             return "";
 
@@ -91,13 +90,13 @@ public static partial class StringExtension
             var w = 0;
             for (var i = 0; i < s.Length; i++)
                 if (s[i]
-                    .IsDigit())
+                    .IsDigitFast())
                     buf[w++] = s[i];
 
             return w == s.Length ? value : w == 0 ? "" : new string(buf[..w]);
         }
 
-        return RemoveNonDigitsBig(value);
+        return value.RemoveNonDigitsBig();
     }
 
     [Pure]
@@ -115,7 +114,7 @@ public static partial class StringExtension
         for (var i = 0; i < s.Length; i++)
         {
             if (s[i]
-                .IsDigit())
+                .IsDigitFast())
                 outLen++;
         }
 
@@ -136,7 +135,7 @@ public static partial class StringExtension
             {
                 char c = sp[i];
 
-                if (c.IsDigit())
+                if (c.IsDigitFast())
                     dst[w++] = c;
             }
         });
@@ -155,21 +154,23 @@ public static partial class StringExtension
             return value;
 
         ReadOnlySpan<char> s = value;
+
         int first = -1;
         for (var i = 0; i < s.Length; i++)
-            if (char.IsWhiteSpace(s[i]))
+        {
+            if (s[i].IsWhiteSpaceFast())
             {
                 first = i;
                 break;
             }
+        }
 
         if (first < 0)
-            return value; // no changes
+            return value;
 
-        // compute length while copying tail in one pass
         int outLen = first;
         for (int i = first + 1; i < s.Length; i++)
-            if (!char.IsWhiteSpace(s[i]))
+            if (!s[i].IsWhiteSpaceFast())
                 outLen++;
 
         if (outLen == 0)
@@ -179,13 +180,14 @@ public static partial class StringExtension
         {
             (string src, int start) = st;
             ReadOnlySpan<char> sp = src;
-            sp[..start]
-                .CopyTo(dst); // copy prefix unchanged
+
+            sp[..start].CopyTo(dst);
             int w = start;
+
             for (int i = start + 1; i < sp.Length; i++)
             {
                 char c = sp[i];
-                if (!char.IsWhiteSpace(c))
+                if (!c.IsWhiteSpaceFast())
                     dst[w++] = c;
             }
         });
@@ -339,6 +341,24 @@ public static partial class StringExtension
                     .IndexOfAny(characters) >= 0;
     }
 
+    [Pure]
+    public static bool ContainsAny(this string value, SearchValues<char> searchValues)
+    {
+        if (value.IsNullOrEmpty())
+            return false;
+
+        return value.AsSpan().IndexOfAny(searchValues) >= 0;
+    }
+
+    [Pure]
+    public static bool ContainsAny(this string value, ReadOnlySpan<char> characters)
+    {
+        if (value.IsNullOrEmpty() || characters.Length == 0)
+            return false;
+
+        return value.AsSpan().IndexOfAny(characters) >= 0;
+    }
+
     /// <summary>
     /// Determines whether the string is equal to any of the specified strings using the specified comparison rules.
     /// </summary>
@@ -428,7 +448,7 @@ public static partial class StringExtension
         "yyyy-MM-dd'T'HH:mm:ssK",
         "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFK"
     ];
-    
+
     /// <summary>
     /// Strict ISO-8601 parse (recommended for APIs). Handles "Z" and explicit offsets reliably.
     /// If no offset is present, it will assume local.
@@ -439,8 +459,7 @@ public static partial class StringExtension
         if (value.IsNullOrWhiteSpace())
             return null;
 
-        return DateTimeOffset.TryParseExact(value, _isoDateTimeOffsetFormats,
-            CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset dto)
+        return DateTimeOffset.TryParseExact(value, _isoDateTimeOffsetFormats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset dto)
             ? dto
             : null;
     }
@@ -886,78 +905,124 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> s = value.AsSpan();
 
-        // pessimistic worst case: same length as input
         Span<char> stack = s.Length <= 512 ? stackalloc char[s.Length] : default;
         char[]? rented = null;
-        Span<char> dst = stack.IsEmpty ? (rented = ArrayPool<char>.Shared.Rent(s.Length)).AsSpan(0, s.Length) : stack;
+        Span<char> dst = stack.IsEmpty
+            ? (rented = ArrayPool<char>.Shared.Rent(s.Length)).AsSpan(0, s.Length)
+            : stack;
 
         var w = 0;
 
         // 0 = not in sep run, 1 = underscore-only run, 2 = dash/whitespace run
         var sepState = 0;
 
+        var changed = false;
+
         for (var i = 0; i < s.Length; i++)
         {
-            char c = s[i];
+            char orig = s[i];
+            char c = orig;
 
-            // Fast ASCII lowercase
-            if ((uint)(c - 'A') <= 25)
-                c = (char)(c + 32);
+            char lower = c.ToLowerInvariant();
 
-            if ((uint)c <= 0x7F)
+            if (lower != c)
+            {
+                c = lower;
+                changed = true;
+            }
+
+            // ASCII fast path
+            if ((uint)c <= 0x7Fu)
             {
                 // [a-z0-9]
-                if ((uint)(c - 'a') <= 25 || (uint)(c - '0') <= 9)
+                if ((uint)(c - 'a') <= 25u || (uint)(c - '0') <= 9u)
                 {
                     if (sepState != 0)
                     {
-                        if (w > 0) // between words -> emit once
+                        if (w > 0)
+                        {
                             dst[w++] = sepState == 1 ? '_' : '-';
-                        sepState = 0; // always reset (also trims leading sep runs)
+                            changed = true; // inserted normalized separator
+                        }
+
+                        sepState = 0;
                     }
 
                     dst[w++] = c;
+
+                    // If the original differed (case fold etc.), it's already marked.
+                    // If not, this implies no change for this char.
                     continue;
                 }
 
-                // underscores keep underscore-run unless a dash/space appears later
+                // underscore => separator run (underscore-only run unless a dash/space appears later)
                 if (c == '_')
                 {
                     if (sepState == 0)
                         sepState = 1;
+
+                    // We are not copying '_' immediately, so output differs unless it gets emitted
+                    // exactly in same positions (we don't guarantee that), so mark changed.
+                    changed = true;
                     continue;
                 }
 
-                // dash or ASCII whitespace => dash-run (dash wins over underscore)
-                if (c == '-' || c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '\f' || c == '\v')
+                // dash or ASCII whitespace => dash-run
+                if (c == '-' || c.IsWhiteSpaceFast())
                 {
                     sepState = 2;
+                    changed = true;
+                    continue;
                 }
 
-                // other ASCII punctuation: skip (doesn't start a sep run)
+                // other ASCII punctuation: skip
+                changed = true;
                 continue;
             }
 
             // Non-ASCII
-            if (char.IsLetterOrDigit(c))
+            if (char.IsLetterOrDigit(orig))
             {
-                if (sepState != 0 && w > 0)
+                if (sepState != 0)
                 {
-                    dst[w++] = sepState == 1 ? '_' : '-';
+                    if (w > 0)
+                    {
+                        dst[w++] = sepState == 1 ? '_' : '-';
+                        changed = true;
+                    }
+
                     sepState = 0;
                 }
 
-                dst[w++] = char.ToLowerInvariant(c);
+                // For Unicode letters/digits, we already lowercased via ToLowerInvariant above
+                dst[w++] = c;
+
+                // If c != orig, changed would already be true
+                // But letter/digit kept as-is could still be identical; no action needed.
+                continue;
             }
-            else if (char.IsWhiteSpace(c))
+
+            if (orig.IsWhiteSpaceFast())
             {
-                sepState = 2; // whitespace => dash-run
+                sepState = 2;
+                changed = true;
+                continue;
             }
-            // else: skip
+
+            // other non-ASCII punctuation/symbol: skip
+            changed = true;
         }
 
-        // No trailing separator emission (trim)
-        string result = w == 0 ? "" : new string(dst[..w]);
+        // If output is identical, return original reference (no allocation)
+        if (!changed && w == s.Length)
+        {
+            if (rented is not null)
+                ArrayPool<char>.Shared.Return(rented);
+
+            return value;
+        }
+
+        string result = w == 0 ? string.Empty : new string(dst[..w]);
 
         if (rented is not null)
             ArrayPool<char>.Shared.Return(rented);
@@ -1025,63 +1090,40 @@ public static partial class StringExtension
     public static string ToStringFromBase64(this string s)
     {
         if (s.IsNullOrWhiteSpace())
-            return "";
+            return string.Empty;
 
-        // Normalize Base64URL (-,_ ) -> Base64 (+,/), add padding if needed
-        if (s.IndexOf('-') >= 0 || s.IndexOf('_') >= 0)
+        ReadOnlySpan<char> input = s.AsSpan();
+
+        int pad = input.Length & 3;
+        if (pad == 1)
+            throw new FormatException("Invalid Base64URL length.");
+
+        int extraPad = pad == 0 ? 0 : 4 - pad;
+
+        int outCharsLen = input.Length + extraPad;
+
+        Span<char> chars = outCharsLen <= 512 ? stackalloc char[outCharsLen] : new char[outCharsLen]; // or ArrayPool<char>
+        for (var i = 0; i < input.Length; i++)
         {
-            // Use single-pass replacement to avoid intermediate string allocations
-            ReadOnlySpan<char> input = s.AsSpan();
-            int first = -1;
-            for (var i = 0; i < input.Length; i++)
-            {
-                if (input[i] == '-' || input[i] == '_')
-                {
-                    first = i;
-                    break;
-                }
-            }
-
-            if (first >= 0)
-            {
-                s = string.Create(input.Length, s, static (dst, src) =>
-                {
-                    ReadOnlySpan<char> sp = src.AsSpan();
-                    for (var i = 0; i < sp.Length; i++)
-                    {
-                        dst[i] = sp[i] switch
-                        {
-                            '-' => '+',
-                            '_' => '/',
-                            _ => sp[i]
-                        };
-                    }
-                });
-            }
-
-            int pad = s.Length % 4;
-
-            if (pad == 2)
-                s += "==";
-            else if (pad == 3)
-                s += "=";
-            else if (pad == 1)
-                throw new FormatException("Invalid Base64URL length.");
+            char c = input[i];
+            chars[i] = c == '-' ? '+' : c == '_' ? '/' : c;
         }
+        for (var i = 0; i < extraPad; i++)
+            chars[input.Length + i] = '=';
 
-        int maxLen = s.Length * 3 / 4; // upper bound
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(maxLen);
+        int maxBytes = outCharsLen * 3 / 4;
+        byte[] rented = ArrayPool<byte>.Shared.Rent(maxBytes);
 
         try
         {
-            if (!Convert.TryFromBase64String(s, buffer, out int bytesWritten))
+            if (!Convert.TryFromBase64Chars(chars, rented, out int written))
                 throw new FormatException("Invalid Base64 data.");
 
-            return Encoding.UTF8.GetString(buffer, 0, bytesWritten);
+            return Encoding.UTF8.GetString(rented, 0, written);
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            ArrayPool<byte>.Shared.Return(rented);
         }
     }
 
@@ -1137,7 +1179,7 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> s = value.AsSpan();
         // Pre-count colons to estimate capacity
-        int colonCount = 0;
+        var colonCount = 0;
         for (var i = 0; i < s.Length; i++)
         {
             if (s[i] == ':')
@@ -1469,17 +1511,21 @@ public static partial class StringExtension
     {
         fileName.ThrowIfNullOrEmpty();
 
-        string extension = Path.GetExtension(fileName);
+        ReadOnlySpan<char> ext = Path.GetExtension(fileName).AsSpan();
+        if (ext.IsEmpty)
+            return string.Empty;
 
-        if (extension.IsNullOrEmpty())
-            return "";
+        if (ext[0] == '.')
+            ext = ext[1..];
 
-        // Remove the leading '.' and convert to lower case
-        return extension[0] == '.'
-            ? extension.AsSpan(1)
-                       .ToString()
-                       .ToLowerInvariantFast()
-            : extension.ToLowerInvariantFast();
+        if (ext.IsEmpty)
+            return string.Empty;
+
+        return string.Create(ext.Length, ext, static (dst, src) =>
+        {
+            for (var i = 0; i < src.Length; i++)
+                dst[i] = src[i].ToLowerInvariant(); // fast ASCII + Unicode fallback
+        });
     }
 
     /// <summary>
@@ -1575,36 +1621,45 @@ public static partial class StringExtension
         if (input.IsNullOrWhiteSpace())
             return input;
 
-        ReadOnlySpan<char> s = input.AsSpan()
-                                    .Trim();
+        ReadOnlySpan<char> raw = input.AsSpan();
 
-        // opening: ```[lang]? \r?\n
+        // If already clean and no fences, return original reference
+        bool hasOuterWs = raw.Length != raw.Trim().Length;
+        bool mightHaveFence =
+            raw.Length >= 3 &&
+            (raw.StartsWith("```".AsSpan()) || raw.EndsWith("```".AsSpan()));
+
+        if (!hasOuterWs && !mightHaveFence)
+            return input;
+
+        ReadOnlySpan<char> s = raw.Trim();
+
         var start = 0;
         if (s.StartsWith("```".AsSpan()))
         {
             var i = 3;
-            while (i < s.Length && s[i] != '\n' && s[i] != '\r')
-                i++;
+            while (i < s.Length && s[i] != '\n' && s[i] != '\r') i++;
             if (i < s.Length)
             {
-                if (s[i] == '\r' && i + 1 < s.Length && s[i + 1] == '\n')
-                    i++;
+                if (s[i] == '\r' && i + 1 < s.Length && s[i + 1] == '\n') i++;
                 start = i + 1;
             }
         }
 
-        // closing: trailing ```
         int end = s.Length;
-        if (end >= 3 && s[(end - 3)..]
-                .SequenceEqual("```".AsSpan()))
+        if (end >= 3 && s[(end - 3)..].SequenceEqual("```".AsSpan()))
         {
             end -= 3;
-            // trim trailing whitespace before ```
-            while (end > start && char.IsWhiteSpace(s[end - 1]))
+            while (end > start && s[end - 1].IsWhiteSpaceFast())
                 end--;
         }
 
         ReadOnlySpan<char> span = s.Slice(start, Math.Max(0, end - start));
+
+        // If result equals original input, return original ref
+        if (span.Length == raw.Length && span.SequenceEqual(raw))
+            return input;
+
         return new string(span);
     }
 
@@ -1632,21 +1687,30 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> s = contentType.AsSpan();
         int idx = s.IndexOf("charset=", StringComparison.OrdinalIgnoreCase);
-
         if (idx < 0)
             return Encoding.UTF8;
 
         ReadOnlySpan<char> rest = s[(idx + "charset=".Length)..];
         int semi = rest.IndexOf(';');
-
         if (semi >= 0)
             rest = rest[..semi];
 
         rest = rest.Trim();
 
+        // common fast paths (no allocation, no exceptions)
+        if (rest.Equals("utf-8".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
+            rest.Equals("utf8".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            return Encoding.UTF8;
+
+        if (rest.Equals("utf-16".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
+            rest.Equals("utf16".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
+            rest.Equals("unicode".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            return Encoding.Unicode;
+
+        // fallback
         try
         {
-            return Encoding.GetEncoding(rest.ToString()); // unavoidable lookup string
+            return Encoding.GetEncoding(rest.ToString());
         }
         catch
         {

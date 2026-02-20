@@ -1,5 +1,4 @@
 ﻿using Soenneker.Culture.English.US;
-using Soenneker.Extensions.Char;
 using System;
 using System.Diagnostics.Contracts;
 using System.Globalization;
@@ -9,6 +8,9 @@ namespace Soenneker.Extensions.String;
 
 public static partial class StringExtension
 {
+    private const NumberStyles _floatStyles = NumberStyles.Float | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
+    private const NumberStyles _integerStyles = NumberStyles.Integer | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
+
     /// <summary>
     /// Determines whether a string contains only numeric characters.
     /// </summary>
@@ -43,9 +45,7 @@ public static partial class StringExtension
     public static double? ToDouble(this string? value)
     {
         // Let TryParse handle whitespace to avoid a separate Trim() pass
-        const NumberStyles styles = NumberStyles.Float | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
-
-        return double.TryParse(value, styles, CultureEnUsCache.Instance, out double result) ? result : null;
+        return double.TryParse(value, _floatStyles, CultureEnUsCache.Instance, out double result) ? result : null;
     }
 
     /// <summary>
@@ -58,9 +58,7 @@ public static partial class StringExtension
     public static decimal? ToDecimal(this string? value)
     {
         // Same rationale as ToDouble; NumberStyles.Float works for decimal too
-        const NumberStyles styles = NumberStyles.Float | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
-
-        return decimal.TryParse(value, styles, CultureEnUsCache.Instance, out decimal result) ? result : null;
+        return decimal.TryParse(value, _floatStyles, CultureEnUsCache.Instance, out decimal result) ? result : null;
     }
 
     /// <summary>
@@ -70,14 +68,11 @@ public static partial class StringExtension
     /// <summary>
     /// Converts the specified string to an integer. If the conversion fails, it returns 0.
     /// </summary>
-    /// <param name="str">The string to convert to an integer. Can be null.</param>
     /// <returns>An integer value if the string can be parsed; otherwise, 0.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int ToInt(this string? str)
     {
-        const NumberStyles styles = NumberStyles.Integer | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;
-
-        return int.TryParse(str, styles, CultureEnUsCache.Instance, out int v) ? v : 0;
+        return int.TryParse(str, _integerStyles, CultureEnUsCache.Instance, out int v) ? v : 0;
     }
 }

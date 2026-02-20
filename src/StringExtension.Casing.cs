@@ -21,15 +21,19 @@ public static partial class StringExtension
         if (len == 0) return value;
 
         char c0 = value![0];
-        // ASCII fast, otherwise BCL for non-ASCII
-        char lc = c0.IsAsciiUpper() ? (char)(c0 + 32) : char.ToLowerInvariant(c0);
-        if (c0 == lc) return value;
-        if (len == 1) return lc.ToString();
+
+        char lc = c0.ToLowerInvariant();
+
+        if (c0 == lc) 
+            return value;
+
+        if (len == 1) 
+            return lc.ToString();
 
         return string.Create(len, value, static (dst, src) =>
         {
             char c = src[0];
-            dst[0] = c.IsAsciiUpper() ? (char)(c + 32) : char.ToLowerInvariant(c);
+            dst[0] = c.ToLowerInvariant();
             src.AsSpan(1)
                 .CopyTo(dst[1..]);
         });
@@ -48,14 +52,17 @@ public static partial class StringExtension
         if (len == 0) return value;
 
         char c0 = value![0];
-        char uc = c0.IsAsciiLower() ? (char)(c0 - 32) : char.ToUpperInvariant(c0);
-        if (c0 == uc) return value;
-        if (len == 1) return uc.ToString();
+        char uc = c0.ToUpperInvariant();
+
+        if (c0 == uc) 
+            return value;
+        if (len == 1) 
+            return uc.ToString();
 
         return string.Create(len, value, static (dst, src) =>
         {
             char c = src[0];
-            dst[0] = c.IsAsciiLower() ? (char)(c - 32) : char.ToUpperInvariant(c);
+            dst[0] = c.ToUpperInvariant();
             src.AsSpan(1)
                 .CopyTo(dst[1..]);
         });
