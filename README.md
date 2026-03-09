@@ -1,6 +1,7 @@
 [![](https://img.shields.io/nuget/v/Soenneker.Extensions.String.svg?style=for-the-badge)](https://www.nuget.org/packages/Soenneker.Extensions.String/)
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.extensions.string/publish-package.yml?style=for-the-badge)](https://github.com/soenneker/soenneker.extensions.string/actions/workflows/publish-package.yml)
 [![](https://img.shields.io/nuget/dt/Soenneker.Extensions.String.svg?style=for-the-badge)](https://www.nuget.org/packages/Soenneker.Extensions.String/)
+[![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.extensions.string/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/soenneker/soenneker.extensions.string/actions/workflows/codeql.yml)
 
 # ![](https://user-images.githubusercontent.com/4441470/224455560-91ed3ee7-f510-4041-a8d2-3fc093025112.png) Soenneker.Extensions.String
 A highly optimized library of string extension methods designed to improve performance, readability, and efficiency in .NET applications. This library is ideal for developers looking to streamline common string operations while adhering to best practices and achieving maximum performance.
