@@ -267,50 +267,6 @@ public class StringExtensionTests
     }
 
     [Theory]
-    [InlineData(null, null)]
-    [InlineData("", "")]
-    [InlineData("hello", "hello")]
-    [InlineData("helloWorld", "hello_world")]
-    [InlineData("HelloWorld", "hello_world")]
-    [InlineData("SomePascalString", "some_pascal_string")]
-    [InlineData("AnotherExample", "another_example")]
-    [InlineData("XMLHttpRequest", "x_m_l_http_request")]
-    public void ToSnakeCaseFromPascal_ConvertsPascalCaseToSnakeCase(string? input, string? expectedOutput)
-    {
-        // Act
-        string result = input!.ToSnakeCaseFromPascal();
-
-        // Assert
-        result.Should().Be(expectedOutput);
-    }
-
-    [Fact]
-    public void ToSnakeCaseFromPascal_WithNullInput_ReturnsNull()
-    {
-        // Arrange
-        string? input = null;
-
-        // Act
-        string result = input.ToSnakeCaseFromPascal();
-
-        // Assert
-        result.Should().BeNull();
-    }
-
-    [Fact]
-    public void ToSnakeCaseFromPascal_WithEmptyInput_ReturnsEmpty()
-    {
-        // Arrange
-        var input = "";
-
-        // Act
-        string result = input.ToSnakeCaseFromPascal();
-
-        // Assert
-        result.Should().BeEmpty();
-    }
-
-    [Theory]
     [InlineData("test", "Test")]
     [InlineData("TEST", "Test")]
     public void ToLowerAndToUpperFirstChar_should_give_result(string input, string expectedOutput)

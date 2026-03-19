@@ -18,16 +18,17 @@ public static partial class StringExtension
     public static string? ToLowerFirstChar(this string? value)
     {
         int len = value?.Length ?? 0;
-        if (len == 0) return value;
+        if (len == 0)
+            return value;
 
         char c0 = value![0];
 
         char lc = c0.ToLowerInvariant();
 
-        if (c0 == lc) 
+        if (c0 == lc)
             return value;
 
-        if (len == 1) 
+        if (len == 1)
             return lc.ToString();
 
         return string.Create(len, value, static (dst, src) =>
@@ -35,7 +36,7 @@ public static partial class StringExtension
             char c = src[0];
             dst[0] = c.ToLowerInvariant();
             src.AsSpan(1)
-                .CopyTo(dst[1..]);
+               .CopyTo(dst[1..]);
         });
     }
 
@@ -49,14 +50,15 @@ public static partial class StringExtension
     public static string? ToUpperFirstChar(this string? value)
     {
         int len = value?.Length ?? 0;
-        if (len == 0) return value;
+        if (len == 0)
+            return value;
 
         char c0 = value![0];
         char uc = c0.ToUpperInvariant();
 
-        if (c0 == uc) 
+        if (c0 == uc)
             return value;
-        if (len == 1) 
+        if (len == 1)
             return uc.ToString();
 
         return string.Create(len, value, static (dst, src) =>
@@ -64,7 +66,7 @@ public static partial class StringExtension
             char c = src[0];
             dst[0] = c.ToUpperInvariant();
             src.AsSpan(1)
-                .CopyTo(dst[1..]);
+               .CopyTo(dst[1..]);
         });
     }
 
@@ -78,11 +80,17 @@ public static partial class StringExtension
     public static string ToLowerInvariantFast(this string str)
     {
         ReadOnlySpan<char> s = str;
-        var i = 0;
+        int i = 0;
+
         for (; i < s.Length; i++)
         {
             char c = s[i];
-            if ((uint)(c - 'A') <= 'Z' - 'A' || c.IsUpperFast()) break;
+
+            if ((uint)(c - 'A') <= ('Z' - 'A'))
+                break;
+
+            if (c > 127 && c.IsUpperFast())
+                return str.ToLowerInvariant();
         }
 
         if (i == s.Length)
@@ -92,21 +100,12 @@ public static partial class StringExtension
         {
             (string src, int start) = st;
             ReadOnlySpan<char> ss = src;
-            ss[..start]
-                .CopyTo(dst);
+            ss[..start].CopyTo(dst);
 
             for (int j = start; j < ss.Length; j++)
             {
                 char c = ss[j];
-                if ((uint)(c - 'A') <= 'Z' - 'A')
-                {
-                    dst[j] = (char)(c + 32);
-                }
-                else
-                {
-                    // Non-ASCII uppercase? use BCL
-                    dst[j] = c.IsUpperFast() ? char.ToLowerInvariant(c) : c;
-                }
+                dst[j] = (uint)(c - 'A') <= ('Z' - 'A') ? (char)(c + 32) : c;
             }
         });
     }
@@ -125,10 +124,12 @@ public static partial class StringExtension
         for (; i < s.Length; i++)
         {
             char c = s[i];
-            if ((uint)(c - 'a') <= 'z' - 'a' || c.IsLowerFast()) break;
+            if ((uint)(c - 'a') <= 'z' - 'a' || c.IsLowerFast())
+                break;
         }
 
-        if (i == s.Length) return str;
+        if (i == s.Length)
+            return str;
 
         return string.Create(s.Length, (str, i), static (dst, st) =>
         {
@@ -146,7 +147,7 @@ public static partial class StringExtension
                 }
                 else
                 {
-                    dst[j] = c.IsLowerFast() ? char.ToUpperInvariant(c) : c;
+                    dst[j] = c.IsLowerFast() ? c.ToUpperInvariant() : c;
                 }
             }
         });
@@ -173,7 +174,8 @@ public static partial class StringExtension
         for (; i < s.Length; i++)
             if ((uint)(s[i] - 'A') <= 'Z' - 'A')
                 break;
-        if (i == s.Length) return str;
+        if (i == s.Length)
+            return str;
 
         return string.Create(s.Length, (str, i), static (dst, st) =>
         {
@@ -210,7 +212,8 @@ public static partial class StringExtension
         for (; i < s.Length; i++)
             if ((uint)(s[i] - 'a') <= 'z' - 'a')
                 break;
-        if (i == s.Length) return str;
+        if (i == s.Length)
+            return str;
 
         return string.Create(s.Length, (str, i), static (dst, st) =>
         {
@@ -222,88 +225,6 @@ public static partial class StringExtension
             {
                 char c = ss[j];
                 dst[j] = (uint)(c - 'a') <= 'z' - 'a' ? (char)(c - 32) : c;
-            }
-        });
-    }
-
-    /// <summary>
-    /// Converts the specified string to title case (each word capitalized), using spaces to determine word boundaries.
-    /// </summary>
-    /// <param name="str">The string to convert to title case.</param>
-    /// <returns>A string converted to title case where each word is capitalized.</returns>
-    /// <remarks>
-    /// This method uses the current culture's <see cref="TextInfo"/> to perform the conversion.
-    /// If the input string is null or empty, it returns the original string.
-    /// </remarks>
-    [Pure]
-    public static string ToTitleCaseViaSpaces(this string str)
-    {
-        if (str.IsNullOrEmpty()) return str;
-
-        return string.Create(str.Length, str, static (dst, src) =>
-        {
-            var newWord = true;
-            for (var i = 0; i < src.Length; i++)
-            {
-                char c = src[i];
-                if (c.IsWhiteSpaceFast())
-                {
-                    newWord = true;
-                    dst[i] = c;
-                }
-                else if (newWord)
-                {
-                    dst[i] = c.IsAsciiLower() ? (char)(c - 32) : char.ToUpperInvariant(c);
-                    newWord = false;
-                }
-                else
-                {
-                    dst[i] = c.IsAsciiUpper() ? (char)(c + 32) : char.ToLowerInvariant(c);
-                }
-            }
-        });
-    }
-
-    /// <summary>
-    /// Converts the input <see cref="string"/> from PascalCase to snake_case.
-    /// </summary>
-    /// <param name="input">The string to convert.</param>
-    /// <returns>A new string in snake_case format.</returns>
-    /// <remarks>
-    /// This method converts a PascalCase string to snake_case format.
-    /// For example, "PascalCaseString" will be converted to "pascal_case_string".
-    /// </remarks>
-    [Pure]
-    public static string ToSnakeCaseFromPascal(this string input)
-    {
-        int len = input?.Length ?? 0;
-        if (len == 0) return input;
-
-        var underscores = 0;
-        for (var i = 1; i < len; i++)
-            if (input[i]
-                .IsUpperFast())
-                underscores++;
-
-        if (underscores == 0)
-            return input.ToLowerInvariantFast();
-
-        int outLen = len + underscores;
-
-        return string.Create(outLen, input, static (dst, src) =>
-        {
-            var w = 0;
-            ReadOnlySpan<char> s = src;
-
-            for (var i = 0; i < s.Length; i++)
-            {
-                char c = s[i];
-
-                if (i > 0 && c.IsUpperFast())
-                    dst[w++] = '_';
-
-                // ASCII fast path; otherwise BCL lower
-                dst[w++] = c.IsAsciiUpper() ? (char)(c + 32) : char.ToLowerInvariant(c);
             }
         });
     }

@@ -62,18 +62,20 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> s = input;
 
-        // ---- PASS 1: compute final length (with trim after transform) ----
+        // Pass 1:
+        // - remove "{{" and "}}"
+        // - map chars
+        // - trim leading/trailing whitespace after mapping
+        // - preserve internal whitespace exactly
         var outLen = 0;
         var i = 0;
-
         var seenNonWs = false;
-        var pendingWs = 0; // whitespace collected between non-whitespace runs
+        var pendingWs = 0;
 
         while (i < s.Length)
         {
             char c = s[i];
 
-            // remove "{{" and "}}"
             if (c == '{' && i + 1 < s.Length && s[i + 1] == '{')
             {
                 i += 2;
@@ -86,7 +88,6 @@ public static partial class StringExtension
                 continue;
             }
 
-            // replacements
             char mapped = c switch
             {
                 '"' => '\'',
@@ -100,7 +101,6 @@ public static partial class StringExtension
 
             if (!seenNonWs)
             {
-                // skip leading whitespace entirely
                 if (isWs)
                 {
                     i++;
@@ -108,45 +108,42 @@ public static partial class StringExtension
                 }
 
                 seenNonWs = true;
-                outLen++; // first non-ws char
+                outLen++;
+                i++;
+                continue;
+            }
+
+            if (isWs)
+            {
+                pendingWs++;
             }
             else
             {
-                if (isWs)
-                {
-                    pendingWs++; // don’t add yet; might be trimmed at end
-                }
-                else
-                {
-                    outLen += pendingWs; // flush pending ws (now it's not trailing)
-                    pendingWs = 0;
-                    outLen++;
-                }
+                outLen += pendingWs + 1;
+                pendingWs = 0;
             }
 
             i++;
         }
 
-        // trailing whitespace is excluded (don’t add pendingWs)
-        if (outLen == 0) 
+        if (outLen == 0)
             return "";
 
-        // ---- PASS 2: write directly ----
-        return string.Create(outLen, input, static (dst, srcStr) =>
+        // Pass 2:
+        // Same state machine as pass 1, but write directly.
+        // No lookahead. No rescanning.
+        return string.Create(outLen, input, static (dst, src) =>
         {
-            ReadOnlySpan<char> s = srcStr;
-
-            var w = 0;
+            ReadOnlySpan<char> s = src;
             var i = 0;
-
-            // skip leading whitespace after transform
-            var leadingDone = false;
+            var w = 0;
+            var seenNonWs = false;
+            var pendingWs = 0;
 
             while (i < s.Length)
             {
                 char c = s[i];
 
-                // remove "{{" and "}}"
                 if (c == '{' && i + 1 < s.Length && s[i + 1] == '{')
                 {
                     i += 2;
@@ -159,7 +156,6 @@ public static partial class StringExtension
                     continue;
                 }
 
-                // map char
                 char mapped = c switch
                 {
                     '"' => '\'',
@@ -171,60 +167,31 @@ public static partial class StringExtension
 
                 bool isWs = char.IsWhiteSpace(mapped);
 
-                if (!leadingDone)
+                if (!seenNonWs)
                 {
                     if (isWs)
                     {
                         i++;
                         continue;
-                    } // drop leading ws
+                    }
 
-                    leadingDone = true;
+                    seenNonWs = true;
                     dst[w++] = mapped;
                     i++;
                     continue;
                 }
 
-                // write, but avoid trailing ws: look-ahead and only write ws if a future non-ws exists
                 if (isWs)
                 {
-                    // peek ahead to see if any non-ws remains
-                    int j = i + 1;
-                    var hasMoreNonWs = false;
-                    while (j < s.Length)
-                    {
-                        char cj = s[j];
-                        if (cj == '{' && j + 1 < s.Length && s[j + 1] == '{')
-                        {
-                            j += 2;
-                            continue;
-                        }
+                    pendingWs++;
+                    i++;
+                    continue;
+                }
 
-                        if (cj == '}' && j + 1 < s.Length && s[j + 1] == '}')
-                        {
-                            j += 2;
-                            continue;
-                        }
-
-                        char mj = cj switch
-                        {
-                            '"' => '\'',
-                            '\\' => '/',
-                            '\r' => ' ',
-                            '\n' => ' ',
-                            _ => cj
-                        };
-
-                        if (!char.IsWhiteSpace(mj))
-                        {
-                            hasMoreNonWs = true;
-                            break;
-                        }
-
-                        j++;
-                    }
-
-                    if (!hasMoreNonWs) break; // drop trailing ws entirely
+                while (pendingWs > 0)
+                {
+                    dst[w++] = ' ';
+                    pendingWs--;
                 }
 
                 dst[w++] = mapped;

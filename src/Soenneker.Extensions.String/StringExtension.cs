@@ -27,6 +27,8 @@ public static partial class StringExtension
 
     private const int _largeStackAllocThreshold = 512;
 
+    private static readonly SearchValues<char> _asciiWhiteSpaceSearchValues = SearchValues.Create(" \t\r\n\f\v");
+
     /// <summary>
     /// Truncates a string to the specified length.
     /// </summary>
@@ -81,60 +83,46 @@ public static partial class StringExtension
     {
         if (value.IsNullOrEmpty())
             return value;
+
         ReadOnlySpan<char> s = value.AsSpan();
 
-        // Small strings: single pass to stack buffer, detect “no change”
-        if (s.Length <= 128)
+        int firstNonDigit = -1;
+        for (int i = 0; i < s.Length; i++)
         {
-            Span<char> buf = stackalloc char[s.Length];
-            var w = 0;
-            for (var i = 0; i < s.Length; i++)
-                if (s[i]
+            if (!s[i]
                     .IsDigitFast())
-                    buf[w++] = s[i];
-
-            return w == s.Length ? value : w == 0 ? "" : new string(buf[..w]);
+            {
+                firstNonDigit = i;
+                break;
+            }
         }
 
-        return value.RemoveNonDigitsBig();
-    }
-
-    [Pure]
-    [return: NotNullIfNotNull(nameof(value))]
-    private static string? RemoveNonDigitsBig(this string? value)
-    {
-        if (value.IsNullOrEmpty())
+        if (firstNonDigit < 0)
             return value;
 
-        ReadOnlySpan<char> s = value.AsSpan();
-
-        // 1) Count digits
-        var outLen = 0;
-
-        for (var i = 0; i < s.Length; i++)
+        int outLen = firstNonDigit;
+        for (int i = firstNonDigit + 1; i < s.Length; i++)
         {
             if (s[i]
                 .IsDigitFast())
                 outLen++;
         }
 
-        // 2) No non-digits? Return original ref
-        if (outLen == s.Length)
-            return value;
-
         if (outLen == 0)
-            return "";
+            return string.Empty;
 
-        // 3) Create and fill
-        return string.Create(outLen, value, static (dst, src) =>
+        return string.Create(outLen, (value, firstNonDigit), static (dst, state) =>
         {
+            (string src, int firstBad) = state;
             ReadOnlySpan<char> sp = src.AsSpan();
-            var w = 0;
 
-            for (var i = 0; i < sp.Length; i++)
+            sp[..firstBad]
+                .CopyTo(dst);
+            int w = firstBad;
+
+            for (int i = firstBad + 1; i < sp.Length; i++)
             {
                 char c = sp[i];
-
                 if (c.IsDigitFast())
                     dst[w++] = c;
             }
@@ -155,22 +143,15 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> s = value;
 
-        int first = -1;
-        for (var i = 0; i < s.Length; i++)
-        {
-            if (s[i].IsWhiteSpaceFast())
-            {
-                first = i;
-                break;
-            }
-        }
+        int first = s.IndexOfAny(_asciiWhiteSpaceSearchValues);
 
         if (first < 0)
             return value;
 
         int outLen = first;
         for (int i = first + 1; i < s.Length; i++)
-            if (!s[i].IsWhiteSpaceFast())
+            if (!s[i]
+                    .IsWhiteSpaceFast())
                 outLen++;
 
         if (outLen == 0)
@@ -181,7 +162,8 @@ public static partial class StringExtension
             (string src, int start) = st;
             ReadOnlySpan<char> sp = src;
 
-            sp[..start].CopyTo(dst);
+            sp[..start]
+                .CopyTo(dst);
             int w = start;
 
             for (int i = start + 1; i < sp.Length; i++)
@@ -250,7 +232,7 @@ public static partial class StringExtension
     [return: NotNullIfNotNull(nameof(value))]
     public static string? RemoveDashes(this string? value)
     {
-        return RemoveAllChar(value, '-');
+        return value.RemoveAllChar('-');
     }
 
     /// <summary>
@@ -347,7 +329,8 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return false;
 
-        return value.AsSpan().IndexOfAny(searchValues) >= 0;
+        return value.AsSpan()
+                    .IndexOfAny(searchValues) >= 0;
     }
 
     [Pure]
@@ -356,7 +339,8 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty() || characters.Length == 0)
             return false;
 
-        return value.AsSpan().IndexOfAny(characters) >= 0;
+        return value.AsSpan()
+                    .IndexOfAny(characters) >= 0;
     }
 
     /// <summary>
@@ -510,17 +494,8 @@ public static partial class StringExtension
     [Pure]
     public static string ToDashesFromWhiteSpace(this string value)
     {
-        int first = -1;
         ReadOnlySpan<char> s = value.AsSpan();
-        for (var i = 0; i < s.Length; i++)
-        {
-            if (s[i]
-                .IsWhiteSpaceFast())
-            {
-                first = i;
-                break;
-            }
-        }
+        int first = s.IndexOfAny(_asciiWhiteSpaceSearchValues);
 
         if (first < 0)
             return value; // return original ref
@@ -695,31 +670,28 @@ public static partial class StringExtension
 
         if (length <= _stackallocThreshold)
         {
-            // Use stackalloc for small strings
             Span<char> buffer = stackalloc char[length];
             value.AsSpan()
                  .CopyTo(buffer);
-
             PerformShuffle(buffer);
             return new string(buffer);
         }
 
-        // Use ArrayPool for larger strings
         ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
+        char[] rented = pool.Rent(length);
 
-        Span<char> spanBuffer = rentedBuffer.AsSpan(0, length);
-        value.AsSpan()
-             .CopyTo(spanBuffer);
-
-        PerformShuffle(spanBuffer);
-
-        var result = new string(spanBuffer);
-
-        // Explicitly return the buffer to the pool
-        pool.Return(rentedBuffer);
-
-        return result;
+        try
+        {
+            Span<char> buffer = rented.AsSpan(0, length);
+            value.AsSpan()
+                 .CopyTo(buffer);
+            PerformShuffle(buffer);
+            return new string(buffer);
+        }
+        finally
+        {
+            pool.Return(rented);
+        }
     }
 
     private static void PerformShuffle(Span<char> buffer)
@@ -746,35 +718,38 @@ public static partial class StringExtension
     public static string SecureShuffle(this string value)
     {
         int length = value?.Length ?? 0;
-
         if (length == 0)
             return value;
 
         if (length <= _stackallocThreshold)
         {
-            // Use stackalloc for small strings
             Span<char> buffer = stackalloc char[length];
             value.AsSpan()
                  .CopyTo(buffer);
 
             PerformSecureShuffle(buffer);
-            return new string(buffer);
+            string result = new string(buffer);
+            CryptographicOperations.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes(buffer));
+
+            return result;
         }
 
-        // Use ArrayPool for larger strings
         ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rentedBuffer = pool.Rent(length);
+        char[] rented = pool.Rent(length);
 
-        Span<char> spanBuffer = rentedBuffer.AsSpan(0, length);
-        value.AsSpan()
-             .CopyTo(spanBuffer);
-
-        PerformSecureShuffle(spanBuffer);
-
-        var result = new string(spanBuffer);
-        spanBuffer.Clear(); // clear sensitive chars
-        pool.Return(rentedBuffer, true); // clearArray: true
-        return result;
+        try
+        {
+            Span<char> buffer = rented.AsSpan(0, length);
+            value.AsSpan()
+                 .CopyTo(buffer);
+            PerformSecureShuffle(buffer);
+            return new string(buffer);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes(rented.AsSpan(0, length)));
+            pool.Return(rented, clearArray: false);
+        }
     }
 
     private static void PerformSecureShuffle(Span<char> buffer)
@@ -907,9 +882,7 @@ public static partial class StringExtension
 
         Span<char> stack = s.Length <= 512 ? stackalloc char[s.Length] : default;
         char[]? rented = null;
-        Span<char> dst = stack.IsEmpty
-            ? (rented = ArrayPool<char>.Shared.Rent(s.Length)).AsSpan(0, s.Length)
-            : stack;
+        Span<char> dst = stack.IsEmpty ? (rented = ArrayPool<char>.Shared.Rent(s.Length)).AsSpan(0, s.Length) : stack;
 
         var w = 0;
 
@@ -1108,6 +1081,7 @@ public static partial class StringExtension
             char c = input[i];
             chars[i] = c == '-' ? '+' : c == '_' ? '/' : c;
         }
+
         for (var i = 0; i < extraPad; i++)
             chars[input.Length + i] = '=';
 
@@ -1132,38 +1106,27 @@ public static partial class StringExtension
     /// </summary>
     /// <param name="str"></param>
     /// <returns></returns>
+    [Pure]
     public static string ToBase64(this string str)
     {
+        if (str.IsNullOrEmpty())
+            return string.Empty;
+
         ReadOnlySpan<char> chars = str;
         int utf8Len = Encoding.UTF8.GetByteCount(chars);
 
-        byte[]? utf8Array = null;
-        Span<byte> utf8 = utf8Len <= 512 ? stackalloc byte[utf8Len] : utf8Array = ArrayPool<byte>.Shared.Rent(utf8Len);
+        byte[]? rented = null;
+        Span<byte> utf8 = utf8Len <= 512 ? stackalloc byte[utf8Len] : (rented = ArrayPool<byte>.Shared.Rent(utf8Len));
 
         try
         {
             Encoding.UTF8.GetBytes(chars, utf8);
-
-            int max64 = Base64.GetMaxEncodedToUtf8Length(utf8Len);
-
-            byte[]? b64Array = null;
-            Span<byte> b64 = max64 <= 1024 ? stackalloc byte[max64] : b64Array = ArrayPool<byte>.Shared.Rent(max64);
-
-            try
-            {
-                Base64.EncodeToUtf8(utf8[..utf8Len], b64, out _, out int written);
-                return Encoding.ASCII.GetString(b64[..written]);
-            }
-            finally
-            {
-                if (b64Array != null)
-                    ArrayPool<byte>.Shared.Return(b64Array);
-            }
+            return Convert.ToBase64String(utf8[..utf8Len]);
         }
         finally
         {
-            if (utf8Array != null)
-                ArrayPool<byte>.Shared.Return(utf8Array);
+            if (rented is not null)
+                ArrayPool<byte>.Shared.Return(rented);
         }
     }
 
@@ -1199,36 +1162,6 @@ public static partial class StringExtension
         }
 
         list.Add(new string(s[start..]));
-        return list;
-    }
-
-    // Helper method to parse IDs into a list
-    private static List<string> ParseIds(ReadOnlySpan<char> span, Span<char> buffer)
-    {
-        var list = new List<string>();
-        var startIndex = 0;
-
-        for (var i = 0; i < span.Length; i++)
-        {
-            if (span[i] == ':')
-            {
-                int segmentLength = i - startIndex;
-
-                // Copy the current segment to the buffer and add to the list
-                span.Slice(startIndex, segmentLength)
-                    .CopyTo(buffer[..segmentLength]);
-                list.Add(new string(buffer[..segmentLength]));
-
-                startIndex = i + 1;
-            }
-        }
-
-        // Handle the last segment after the final colon
-        int remainingLength = span.Length - startIndex;
-        span[startIndex..]
-            .CopyTo(buffer[..remainingLength]);
-        list.Add(new string(buffer[..remainingLength]));
-
         return list;
     }
 
@@ -1307,13 +1240,25 @@ public static partial class StringExtension
     /// Converts a string to a boolean value. Accepts "true", "false", "1", "0" (case-insensitive).
     /// Returns false if input is null, empty, or unrecognized.
     /// </summary>
-    [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ToBool(this string? value)
     {
-        if (bool.TryParse(value, out bool b))
-            return b;
-        // cheap path for "1"
-        return value is { Length: 1 } v && v[0] == '1';
+        if (value is null)
+            return false;
+
+        ReadOnlySpan<char> s = value.AsSpan();
+
+        if (s.Length == 1)
+            return s[0] == '1';
+
+        if (s.Equals("true".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (s.Equals("false".AsSpan(), StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return bool.TryParse(value, out bool b) && b;
     }
 
     /// <summary>
@@ -1511,7 +1456,8 @@ public static partial class StringExtension
     {
         fileName.ThrowIfNullOrEmpty();
 
-        ReadOnlySpan<char> ext = Path.GetExtension(fileName).AsSpan();
+        ReadOnlySpan<char> ext = Path.GetExtension(fileName)
+                                     .AsSpan();
         if (ext.IsEmpty)
             return string.Empty;
 
@@ -1524,7 +1470,8 @@ public static partial class StringExtension
         return string.Create(ext.Length, ext, static (dst, src) =>
         {
             for (var i = 0; i < src.Length; i++)
-                dst[i] = src[i].ToLowerInvariant(); // fast ASCII + Unicode fallback
+                dst[i] = src[i]
+                    .ToLowerInvariant(); // fast ASCII + Unicode fallback
         });
     }
 
@@ -1624,10 +1571,9 @@ public static partial class StringExtension
         ReadOnlySpan<char> raw = input.AsSpan();
 
         // If already clean and no fences, return original reference
-        bool hasOuterWs = raw.Length != raw.Trim().Length;
-        bool mightHaveFence =
-            raw.Length >= 3 &&
-            (raw.StartsWith("```".AsSpan()) || raw.EndsWith("```".AsSpan()));
+        bool hasOuterWs = raw.Length != raw.Trim()
+                                           .Length;
+        bool mightHaveFence = raw.Length >= 3 && (raw.StartsWith("```".AsSpan()) || raw.EndsWith("```".AsSpan()));
 
         if (!hasOuterWs && !mightHaveFence)
             return input;
@@ -1638,19 +1584,23 @@ public static partial class StringExtension
         if (s.StartsWith("```".AsSpan()))
         {
             var i = 3;
-            while (i < s.Length && s[i] != '\n' && s[i] != '\r') i++;
+            while (i < s.Length && s[i] != '\n' && s[i] != '\r')
+                i++;
             if (i < s.Length)
             {
-                if (s[i] == '\r' && i + 1 < s.Length && s[i + 1] == '\n') i++;
+                if (s[i] == '\r' && i + 1 < s.Length && s[i + 1] == '\n')
+                    i++;
                 start = i + 1;
             }
         }
 
         int end = s.Length;
-        if (end >= 3 && s[(end - 3)..].SequenceEqual("```".AsSpan()))
+        if (end >= 3 && s[(end - 3)..]
+                .SequenceEqual("```".AsSpan()))
         {
             end -= 3;
-            while (end > start && s[end - 1].IsWhiteSpaceFast())
+            while (end > start && s[end - 1]
+                       .IsWhiteSpaceFast())
                 end--;
         }
 
@@ -1680,6 +1630,7 @@ public static partial class StringExtension
     /// Any exceptions when resolving the encoding (e.g., unsupported or malformed values) 
     /// are caught and ignored, falling back to UTF-8.
     /// </remarks>
+    [Pure]
     public static Encoding GetEncoding(this string? contentType)
     {
         if (contentType.IsNullOrEmpty())
@@ -1690,14 +1641,13 @@ public static partial class StringExtension
         if (idx < 0)
             return Encoding.UTF8;
 
-        ReadOnlySpan<char> rest = s[(idx + "charset=".Length)..];
+        ReadOnlySpan<char> rest = s[(idx + 8)..];
         int semi = rest.IndexOf(';');
         if (semi >= 0)
             rest = rest[..semi];
 
-        rest = rest.Trim();
+        rest = rest.Trim().Trim('"');
 
-        // common fast paths (no allocation, no exceptions)
         if (rest.Equals("utf-8".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
             rest.Equals("utf8".AsSpan(), StringComparison.OrdinalIgnoreCase))
             return Encoding.UTF8;
@@ -1707,7 +1657,6 @@ public static partial class StringExtension
             rest.Equals("unicode".AsSpan(), StringComparison.OrdinalIgnoreCase))
             return Encoding.Unicode;
 
-        // fallback
         try
         {
             return Encoding.GetEncoding(rest.ToString());
