@@ -5,21 +5,24 @@
 
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-            <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
-            <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
-            <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
+        <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+        <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+        <TestingPlatformShowTestsFailure>true</TestingPlatformShowTestsFailure>
 
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AwesomeAssertions" Version="9.4.0" /><PackageReference Include="Soenneker.Tests.Benchmark" Version="4.0.81" /><PackageReference Include="xUnit.v3" Version="3.2.2" /></ItemGroup>
+        <PackageReference Include="AwesomeAssertions" Version="9.4.0" />
+        <PackageReference Include="Soenneker.Tests.Benchmark" Version="4.0.81" />
+        <PackageReference Include="xUnit.v3" Version="3.2.2" />
+    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\Soenneker.Extensions.String\Soenneker.Extensions.String.csproj" />
     </ItemGroup>
     <ItemGroup>
         <Content Include="testconfig.json">
-          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>
 
