@@ -1,5 +1,4 @@
-﻿using AwesomeAssertions;
-using Xunit;
+using AwesomeAssertions;
 
 namespace Soenneker.Extensions.String.Tests;
 
@@ -25,7 +24,7 @@ public class ToIntTests
         result.Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void ToInt_ShouldHandleMaximumIntValue()
     {
         // Arrange
@@ -38,7 +37,7 @@ public class ToIntTests
         result.Should().Be(int.MaxValue);
     }
 
-    [Fact]
+    [Test]
     public void ToInt_ShouldHandleMinimumIntValue()
     {
         // Arrange

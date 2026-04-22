@@ -2,7 +2,6 @@ using AwesomeAssertions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Xunit;
 
 namespace Soenneker.Extensions.String.Tests;
 
@@ -18,7 +17,7 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void String_date_should_parse()
     {
         const string date = "03/22/2019";
@@ -31,7 +30,7 @@ public class StringExtensionTests
         dateTime.Value.Year.Should().Be(2019);
     }
 
-    [Fact]
+    [Test]
     public void String_date_should_parse_without_leading_zero()
     {
         const string date = "3/22/2019";
@@ -44,7 +43,7 @@ public class StringExtensionTests
         dateTime.Value.Year.Should().Be(2019);
     }
 
-    [Fact]
+    [Test]
     public void String_date_european_should_not_parse()
     {
         const string date = "22/05/2019";
@@ -53,7 +52,7 @@ public class StringExtensionTests
         dateTime.Should().BeNull();
     }
 
-    [Fact]
+    [Test]
     public void ToDouble_should_parse_correctly()
     {
         const string test = "2.5";
@@ -131,7 +130,6 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-
     [Theory]
     [InlineData(null, null)]
     [InlineData(" ", " ")]
@@ -156,7 +154,7 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void ToIds_with_values_should_give_result()
     {
         const string test = "blah:test";
@@ -165,7 +163,7 @@ public class StringExtensionTests
         result![1].Should().Be("test");
     }
 
-    [Fact]
+    [Test]
     public void ToIds_with_no_separator_should_give_result()
     {
         const string test = "blah";
@@ -173,7 +171,7 @@ public class StringExtensionTests
         result!.First().Should().Be("blah");
     }
 
-    [Fact]
+    [Test]
     public void ToIds_with_null_should_be_null()
     {
         string? test = null;
@@ -192,7 +190,7 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void Mask_ShortString_ReturnsAsterisks()
     {
         const string input = "Short";
@@ -201,7 +199,7 @@ public class StringExtensionTests
         result.Should().Be("*****");
     }
 
-    [Fact]
+    [Test]
     public void Mask_LongString_ReturnsMaskedString()
     {
         const string input = "ThisIsALongString";
@@ -222,7 +220,7 @@ public class StringExtensionTests
         documentId.Should().Be(expectedDocumentId);
     }
 
-    [Fact]
+    [Test]
     public void RemoveDashes_should_remove_dashes()
     {
         const string input = "This-Is-ALongString";
@@ -254,7 +252,7 @@ public class StringExtensionTests
         result.Should().Be(expectedResult);
     }
 
-    [Fact]
+    [Test]
     public void Slugify_WithNullInput_ReturnsNull()
     {
         // Act
@@ -288,7 +286,7 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void ToDisplayPhoneNumber_WithInvalidInput_ShouldThrowException()
     {
         // Arrange
@@ -316,7 +314,7 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Fact]
+    [Test]
     public void ToMemoryStream_should_be_left_open()
     {
         const string testStr = "test";

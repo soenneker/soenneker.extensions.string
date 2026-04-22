@@ -1,12 +1,11 @@
 using System;
 using AwesomeAssertions;
-using Xunit;
 
 namespace Soenneker.Extensions.String.Tests;
 
 public class StringExtensionGuidTests
 {
-    [Fact]
+    [Test]
     public void ToIntFromGuid_ValidGuid_ReturnsConsistentInteger()
     {
         // Arrange
@@ -23,7 +22,7 @@ public class StringExtensionGuidTests
         result1.Should().BeGreaterThanOrEqualTo(0, because: "the integer should be non-negative");
     }
 
-    [Fact]
+    [Test]
     public void ToIntFromGuid_DifferentGuids_ReturnDifferentIntegers()
     {
         // Arrange
@@ -38,7 +37,7 @@ public class StringExtensionGuidTests
         result1.Should().NotBe(result2, because: "different GUIDs should produce different integers");
     }
 
-    [Fact]
+    [Test]
     public void ToIntFromGuid_InvalidGuid_ThrowsFormatException()
     {
         // Arrange
@@ -51,7 +50,7 @@ public class StringExtensionGuidTests
         act.Should().Throw<FormatException>();
     }
 
-    [Fact]
+    [Test]
     public void ToIntFromGuid_EmptyGuid_ThrowsFormatException()
     {
         // Arrange
@@ -64,7 +63,7 @@ public class StringExtensionGuidTests
         act.Should().Throw<FormatException>();
     }
 
-    [Fact]
+    [Test]
     public void ToIntFromGuid_ValidGuidWithDifferentFormats_ThrowsFormatException()
     {
         // Arrange
@@ -77,7 +76,7 @@ public class StringExtensionGuidTests
         act.Should().Throw<FormatException>();
     }
 
-    [Fact]
+    [Test]
     public void ToIntFromGuid_PerformanceTest()
     {
         // Arrange

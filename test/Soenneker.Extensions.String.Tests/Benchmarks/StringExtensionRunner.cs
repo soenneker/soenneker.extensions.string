@@ -1,19 +1,18 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using Soenneker.Benchmarking.Extensions.Summary;
 using Soenneker.Tests.Benchmark;
-using Xunit;
 
 namespace Soenneker.Extensions.String.Tests.Benchmarks;
 
 public class StringExtensionRunner : BenchmarkTest
 {
-    public StringExtensionRunner(ITestOutputHelper outputHelper) : base(outputHelper)
+    public StringExtensionRunner() : base()
     {
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask IsNullOrEmpty()
     {
         Summary summary = BenchmarkRunner.Run<IsNullOrEmptyBenchmark>(DefaultConf);
@@ -21,7 +20,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask ToUpperInvariant()
     {
         Summary summary = BenchmarkRunner.Run<ToUpperInvariantBenchmark>(DefaultConf);
@@ -29,7 +28,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask ToInt()
     {
         Summary summary = BenchmarkRunner.Run<ToIntBenchmark>(DefaultConf);
@@ -37,7 +36,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask RemoveWhiteSpace()
     {
         Summary summary = BenchmarkRunner.Run<RemoveWhiteSpaceBenchmark>(DefaultConf);
@@ -45,7 +44,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask EqualsAny()
     {
         Summary summary = BenchmarkRunner.Run<EqualsAnyBenchmark>(DefaultConf);
@@ -53,7 +52,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask ToBytes()
     {
         Summary summary = BenchmarkRunner.Run<ToBytesBenchmark>(DefaultConf);
@@ -61,7 +60,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-  //  [Fact]
+  //  [Test]
     public async ValueTask ToBytesFromBase64()
     {
         Summary summary = BenchmarkRunner.Run<ToBytesFromBase64Benchmark>(DefaultConf);
@@ -69,7 +68,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask ToDashesFromWhiteSpace()
     {
         Summary summary = BenchmarkRunner.Run<ToDashesFromWhiteSpaceBenchmark>(DefaultConf);
@@ -77,7 +76,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask ToSplitId()
     {
         Summary summary = BenchmarkRunner.Run<ToSplitIdBenchmark>(DefaultConf);
@@ -85,7 +84,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask ToBool()
     {
         Summary summary = BenchmarkRunner.Run<ToBoolBenchmark>(DefaultConf);
@@ -93,7 +92,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-//    [Fact]
+//    [Test]
     public async ValueTask AddPartitionKey()
     {
         Summary summary = BenchmarkRunner.Run<AddPartitionKeyBenchmark>(DefaultConf);
@@ -101,7 +100,7 @@ public class StringExtensionRunner : BenchmarkTest
         await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
     }
 
-   // [Fact]
+   // [Test]
     public async ValueTask AddDocumentId()
     {
         Summary summary = BenchmarkRunner.Run<AddDocumentIdBenchmark>(DefaultConf);
