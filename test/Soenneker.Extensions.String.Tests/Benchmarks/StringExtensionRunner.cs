@@ -17,7 +17,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<IsNullOrEmptyBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -25,7 +25,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<ToUpperInvariantBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -33,7 +33,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<ToIntBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -41,7 +41,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<RemoveWhiteSpaceBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -49,7 +49,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<EqualsAnyBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -57,7 +57,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<ToBytesBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
   //  [Test]
@@ -65,7 +65,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<ToBytesFromBase64Benchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -73,7 +73,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<ToDashesFromWhiteSpaceBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -81,7 +81,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<ToSplitIdBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -89,7 +89,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<ToBoolBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
 //    [Test]
@@ -97,7 +97,7 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<AddPartitionKeyBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 
    // [Test]
@@ -105,6 +105,8 @@ public class StringExtensionRunner : BenchmarkTest
     {
         Summary summary = BenchmarkRunner.Run<AddDocumentIdBenchmark>(DefaultConf);
 
-        await summary.OutputSummaryToLog(OutputHelper, CancellationToken);
+        await summary.OutputSummaryToLog();
     }
 }
+
+

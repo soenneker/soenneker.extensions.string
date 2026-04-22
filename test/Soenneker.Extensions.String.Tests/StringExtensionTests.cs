@@ -7,10 +7,10 @@ namespace Soenneker.Extensions.String.Tests;
 
 public class StringExtensionTests
 {
-    [Theory]
-    [InlineData(null, false)]
-    [InlineData("", true)]
-    [InlineData(" ", false)]
+    [Test]
+    [Arguments(null, false)]
+    [Arguments("", true)]
+    [Arguments(" ", false)]
     public void IsEmpty(string? value, bool expected)
     {
         bool result = value.IsEmpty();
@@ -62,10 +62,10 @@ public class StringExtensionTests
         result.Should().Be(2.5D);
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData("arst", "")]
-    [InlineData("arst23k@3 3 test", "2333")]
+    [Test]
+    [Arguments(null, null)]
+    [Arguments("arst", "")]
+    [Arguments("arst23k@3 3 test", "2333")]
     public void RemoveNonDigits_tests(string? test, string? expected)
     {
         string? result = test.RemoveNonDigits();
@@ -73,10 +73,10 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData("arst23k", "arst23k")]
-    [InlineData("arst23k@3 3 test", "arst23k@33test")]
+    [Test]
+    [Arguments(null, null)]
+    [Arguments("arst23k", "arst23k")]
+    [Arguments("arst23k@3 3 test", "arst23k@33test")]
     public void RemoveWhiteSpace_should_remove_white_space(string? test, string? expected)
     {
         string? result = test.RemoveWhiteSpace();
@@ -84,10 +84,10 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData("Test with space", "Test%20with%20space")]
-    [InlineData("Testwith:", "Testwith%3A")]
+    [Test]
+    [Arguments(null, null)]
+    [Arguments("Test with space", "Test%20with%20space")]
+    [Arguments("Testwith:", "Testwith%3A")]
     public void ToEscaped_should_escape(string? test, string? expected)
     {
         string? result = test.ToEscaped();
@@ -95,23 +95,23 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData("www.google.com", "wwwgooglecom")]
-    [InlineData("https://forwardslashperiod.com/", "httpsforwardslashperiodcom")]
-    [InlineData("allows-dashes", "allows-dashes")]
-    [InlineData("Double--dash", "double-dash")]
-    [InlineData("underscore_-dash", "underscore-dash")]
-    [InlineData("double__underscore", "double_underscore")]
-    [InlineData("ending-dash-", "ending-dash")]
-    [InlineData("ending-underscore_", "ending-underscore")]
-    [InlineData("Uppercase", "uppercase")]
-    [InlineData("spaces to dashes", "spaces-to-dashes")]
-    [InlineData("&ampersand", "ampersand")]
-    [InlineData("#hash", "hash")]
-    [InlineData("\\Backslash", "backslash")]
-    [InlineData("\"Quote", "quote")]
-    [InlineData("`';&~", "")]
+    [Test]
+    [Arguments(null, null)]
+    [Arguments("www.google.com", "wwwgooglecom")]
+    [Arguments("https://forwardslashperiod.com/", "httpsforwardslashperiodcom")]
+    [Arguments("allows-dashes", "allows-dashes")]
+    [Arguments("Double--dash", "double-dash")]
+    [Arguments("underscore_-dash", "underscore-dash")]
+    [Arguments("double__underscore", "double_underscore")]
+    [Arguments("ending-dash-", "ending-dash")]
+    [Arguments("ending-underscore_", "ending-underscore")]
+    [Arguments("Uppercase", "uppercase")]
+    [Arguments("spaces to dashes", "spaces-to-dashes")]
+    [Arguments("&ampersand", "ampersand")]
+    [Arguments("#hash", "hash")]
+    [Arguments("\\Backslash", "backslash")]
+    [Arguments("\"Quote", "quote")]
+    [Arguments("`';&~", "")]
     public void Slugify_should_replace(string? test, string? expected)
     {
         string? result = test.Slugify();
@@ -119,10 +119,10 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData(" ", " ")]
-    [InlineData("/www.google.com", "www.google.com")]
+    [Test]
+    [Arguments(null, null)]
+    [Arguments(" ", " ")]
+    [Arguments("/www.google.com", "www.google.com")]
     public void RemoveLeadingChar_should_remove_char(string? test, string? expected)
     {
         string? result = test.RemoveLeadingChar('/');
@@ -130,11 +130,11 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData(" ", " ")]
-    [InlineData("arst", "arst")]
-    [InlineData("/www.google.com", "/www.google.co")]
+    [Test]
+    [Arguments(null, null)]
+    [Arguments(" ", " ")]
+    [Arguments("arst", "arst")]
+    [Arguments("/www.google.com", "/www.google.co")]
     public void RemoveTrailingChar_should_remove_char(string? test, string? expected)
     {
         string? result = test.RemoveTrailingChar('m');
@@ -142,11 +142,11 @@ public class StringExtensionTests
         result.Should().Be(expected);
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData(" ", " ")]
-    [InlineData("blerg", "Blerg")]
-    [InlineData("a", "A")]
+    [Test]
+    [Arguments(null, null)]
+    [Arguments(" ", " ")]
+    [Arguments("blerg", "Blerg")]
+    [Arguments("a", "A")]
     public void ToUpperFirstChar_should_capitalize_first_char(string? test, string? expected)
     {
         string? result = test.ToUpperFirstChar();
@@ -179,10 +179,10 @@ public class StringExtensionTests
         result.Should().BeNull();
     }
 
-    [Theory]
-    [InlineData(null, 0)]
-    [InlineData(" ", 0)]
-    [InlineData("1", 1)]
+    [Test]
+    [Arguments(null, 0)]
+    [Arguments(" ", 0)]
+    [Arguments("1", 1)]
     public void ToInt_should_produce_expected(string? test, int expected)
     {
         int result = test.ToInt();
@@ -208,10 +208,10 @@ public class StringExtensionTests
         result.Should().Be("**************ing");
     }
 
-    [Theory]
-    [InlineData("id", "id", "id")]
-    [InlineData("partitionKey:documentId", "partitionKey", "documentId")]
-    [InlineData("otherid:partitionkey:documentid", "otherid:partitionkey", "documentid")]
+    [Test]
+    [Arguments("id", "id", "id")]
+    [Arguments("partitionKey:documentId", "partitionKey", "documentId")]
+    [Arguments("otherid:partitionkey:documentid", "otherid:partitionkey", "documentid")]
     public void ToSplitId_ReturnsCorrectValues(string input, string expectedPartitionKey, string expectedDocumentId)
     {
         (string partitionKey, string documentId) = input.ToSplitId();
@@ -229,20 +229,20 @@ public class StringExtensionTests
         result.Should().Be("ThisIsALongString");
     }
 
-    [Theory]
-    [InlineData(null, null)]
-    [InlineData("", "")]
-    [InlineData("hello world", "hello-world")]
-    [InlineData("Hello World", "hello-world")]
-    [InlineData("HelloWorld", "helloworld")]
-    [InlineData("hello_world", "hello_world")]
-    [InlineData("Hello_World", "hello_world")]
-    [InlineData("Hello__World", "hello_world")]
-    [InlineData("Hello-World_", "hello-world")]
-    [InlineData("-Hello-World-", "hello-world")]
-    [InlineData("  Hello  World  ", "hello-world")]
-    [InlineData("12345", "12345")]
-    [InlineData("123-45", "123-45")]
+    [Test]
+    [Arguments(null, null)]
+    [Arguments("", "")]
+    [Arguments("hello world", "hello-world")]
+    [Arguments("Hello World", "hello-world")]
+    [Arguments("HelloWorld", "helloworld")]
+    [Arguments("hello_world", "hello_world")]
+    [Arguments("Hello_World", "hello_world")]
+    [Arguments("Hello__World", "hello_world")]
+    [Arguments("Hello-World_", "hello-world")]
+    [Arguments("-Hello-World-", "hello-world")]
+    [Arguments("  Hello  World  ", "hello-world")]
+    [Arguments("12345", "12345")]
+    [Arguments("123-45", "123-45")]
     public void Slugify_ReturnsExpectedResult(string? input, string? expectedResult)
     {
         // Act
@@ -264,19 +264,19 @@ public class StringExtensionTests
         result.Should().BeNull();
     }
 
-    [Theory]
-    [InlineData("test", "Test")]
-    [InlineData("TEST", "Test")]
+    [Test]
+    [Arguments("test", "Test")]
+    [Arguments("TEST", "Test")]
     public void ToLowerAndToUpperFirstChar_should_give_result(string input, string expectedOutput)
     {
         input.ToLowerInvariantFast().ToUpperFirstChar().Should().Be(expectedOutput);
     }
 
-    [Theory]
-    [InlineData("1234567890", "(123) 456-7890")]
-    [InlineData("9876543210", "(987) 654-3210")]
-    [InlineData("+19876543210", "(987) 654-3210")]
-    [InlineData("19876543210", "(987) 654-3210")]
+    [Test]
+    [Arguments("1234567890", "(123) 456-7890")]
+    [Arguments("9876543210", "(987) 654-3210")]
+    [Arguments("+19876543210", "(987) 654-3210")]
+    [Arguments("19876543210", "(987) 654-3210")]
     public void ToDisplayPhoneNumber_ShouldFormatCorrectly(string input, string expected)
     {
         // Act
@@ -299,12 +299,12 @@ public class StringExtensionTests
         act.Should().Throw<ArgumentException>();
     }
 
-    [Theory]
-    [InlineData("example.txt", "txt")]
-    [InlineData("archive.tar.gz", "gz")]
-    [InlineData("no_extension", "")]
-    [InlineData("hiddenfile.", "")]
-    [InlineData("UPPERCASE.TXT", "txt")]
+    [Test]
+    [Arguments("example.txt", "txt")]
+    [Arguments("archive.tar.gz", "gz")]
+    [Arguments("no_extension", "")]
+    [Arguments("hiddenfile.", "")]
+    [Arguments("UPPERCASE.TXT", "txt")]
     public void ToFileExtension_ShouldReturnExpectedExtension(string input, string expected)
     {
         // Act
