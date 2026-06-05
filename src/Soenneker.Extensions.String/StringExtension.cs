@@ -323,6 +323,12 @@ public static partial class StringExtension
                     .IndexOfAny(characters) >= 0;
     }
 
+    /// <summary>
+    /// Executes the contains any operation.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="searchValues">The search values.</param>
+    /// <returns>A value indicating whether the operation succeeded.</returns>
     [Pure]
     public static bool ContainsAny(this string value, SearchValues<char> searchValues)
     {
@@ -333,6 +339,12 @@ public static partial class StringExtension
                     .IndexOfAny(searchValues) >= 0;
     }
 
+    /// <summary>
+    /// Executes the contains any operation.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="characters">The characters.</param>
+    /// <returns>A value indicating whether the operation succeeded.</returns>
     [Pure]
     public static bool ContainsAny(this string value, ReadOnlySpan<char> characters)
     {
@@ -400,6 +412,11 @@ public static partial class StringExtension
     public static DateTime? ToDateTime(this string? date) =>
         DateTime.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTime dt) ? dt : null;
 
+    /// <summary>
+    /// Executes the to utc date time operation.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The result of the operation.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime? ToUtcDateTime(this string? value) =>
         DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out DateTime dt) ? dt : null;
@@ -573,11 +590,10 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// <inheritdoc cref="Convert.FromBase64String(string)"/>
+    /// Executes the to bytes from base64 operation.
     /// </summary>
-    /// <remarks>Equivalent to Convert.FromBase64String(value)</remarks>
-    /// <param name="value"></param>
-    /// <returns></returns>
+    /// <param name="value">The value.</param>
+    /// <returns>The result of the operation.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToBytesFromBase64(this string value)
     {
@@ -589,11 +605,10 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// <inheritdoc cref="Convert.FromHexString(string)"/>
+    /// Executes the to bytes from hex operation.
     /// </summary>
-    /// <remarks>Equivalent to Convert.FromHexString(value)</remarks>
-    /// <param name="hex"></param>
-    /// <returns></returns>
+    /// <param name="hex">The hex.</param>
+    /// <returns>The result of the operation.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToBytesFromHex(this string hex)
     {
@@ -808,6 +823,11 @@ public static partial class StringExtension
     public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value) =>
         string.IsNullOrWhiteSpace(value);
 
+    /// <summary>
+    /// Executes the is white space operation.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>A value indicating whether the operation succeeded.</returns>
     [Pure]
     public static bool IsWhiteSpace([NotNullWhen(false)] this string? value)
     {
@@ -1016,6 +1036,12 @@ public static partial class StringExtension
         return Enum.Parse<TEnum>(value, true);
     }
 
+    /// <summary>
+    /// Attempts to execute to enum.
+    /// </summary>
+    /// <typeparam name="TEnum">The TEnum type.</typeparam>
+    /// <param name="value">The value.</param>
+    /// <returns>The result of the operation.</returns>
     [Pure]
     public static TEnum? TryToEnum<TEnum>(this string? value) where TEnum : struct, Enum
     {

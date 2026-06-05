@@ -6,6 +6,9 @@ using System.Runtime.CompilerServices;
 
 namespace Soenneker.Extensions.String;
 
+/// <summary>
+/// Represents the string extension.
+/// </summary>
 public static partial class StringExtension
 {
     private const NumberStyles _floatStyles = NumberStyles.Float | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite;

@@ -6,6 +6,9 @@ using System.Globalization;
 
 namespace Soenneker.Extensions.String;
 
+/// <summary>
+/// Represents the string extension.
+/// </summary>
 public static partial class StringExtension
 {
     /// <summary>
