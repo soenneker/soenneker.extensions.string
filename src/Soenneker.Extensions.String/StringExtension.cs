@@ -1524,6 +1524,56 @@ public static partial class StringExtension
     }
 
     /// <summary>
+    /// Converts a string to a <see cref=\"Uri\"/> if valid and absolute; otherwise returns <c>null</c>.
+    /// </summary>
+    /// <param name=\"uri\">The value to convert.</param>
+    /// <returns>A parsed absolute <see cref=\"Uri\"/> when valid; otherwise, null.</returns>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Uri? ToUri(this string? uri)
+    {
+        if (Uri.TryCreate(uri, UriKind.Absolute, out Uri? result))
+            return result;
+
+        return null;
+    }
+
+    /// <summary>
+    /// Determines whether the value is a valid absolute URI.
+    /// </summary>
+    /// <param name=\"value\">The value to validate.</param>
+    /// <returns><c>true</c> if the value is a valid absolute URI; otherwise, <c>false</c>.</returns>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsUri(this string? value)
+    {
+        return Uri.TryCreate(value, UriKind.Absolute, out Uri? uri);
+    }
+
+    [Pure]
+    public static bool IsHttpUriLike(this string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        ReadOnlySpan<char> span = value.AsSpan();
+
+        if (!span.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+            !span.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < span.Length; i++)
+        {
+            if (char.IsWhiteSpace(span[i]) || char.IsControl(span[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Compares the current string with the specified string, ignoring case using ordinal comparison.
     /// </summary>
     /// <param name="str">The current string instance.</param>

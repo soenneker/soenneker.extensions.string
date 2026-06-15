@@ -78,4 +78,16 @@ public static partial class StringExtension
     {
         return int.TryParse(str, _integerStyles, CultureEnUsCache.Instance, out int v) ? v : 0;
     }
+
+    /// <summary>
+    /// Converts the specified string to a long. If the conversion fails, it returns 0.
+    /// </summary>
+    /// <param name="str">The string to convert to a long. Can be null.</param>
+    /// <returns>A long value if the string can be parsed; otherwise, 0.</returns>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long ToLong(this string? str)
+    {
+        return long.TryParse(str, _integerStyles, CultureEnUsCache.Instance, out long v) ? v : 0;
+    }
 }

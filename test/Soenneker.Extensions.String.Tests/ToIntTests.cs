@@ -61,4 +61,65 @@ public class ToIntTests
         // Assert
         result.Should().Be(expected);
     }
+
+    [Test]
+    [Arguments("123", 123L)]
+    [Arguments("0", 0L)]
+    [Arguments("-456", -456L)]
+    [Arguments("   789   ", 789L)]
+    [Arguments(null, 0L)]
+    [Arguments("", 0L)]
+    [Arguments("   ", 0L)]
+    [Arguments("abc", 0L)]
+    [Arguments("123abc", 0L)]
+    public void ToLong_ShouldReturnExpectedResult(string? input, long expected)
+    {
+        // Act
+        long result = input.ToLong();
+
+        // Assert
+        result.Should().Be(expected);
+    }
+
+    [Test]
+    public void ToLong_ShouldHandleMaximumLongValue()
+    {
+        // Arrange
+        var input = long.MaxValue.ToString();
+
+        // Act
+        long result = input.ToLong();
+
+        // Assert
+        result.Should().Be(long.MaxValue);
+    }
+
+    [Test]
+    public void ToLong_ShouldHandleMinimumLongValue()
+    {
+        // Arrange
+        var input = long.MinValue.ToString();
+
+        // Act
+        long result = input.ToLong();
+
+        // Assert
+        result.Should().Be(long.MinValue);
+    }
+
+    [Test]
+    public void ToLong_ShouldReturnZeroForOverflowOrUnderflow()
+    {
+        // Arrange
+        const string maxPlusOne = "9223372036854775808";
+        const string minMinusOne = "-9223372036854775809";
+
+        // Act
+        long maxResult = maxPlusOne.ToLong();
+        long minResult = minMinusOne.ToLong();
+
+        // Assert
+        maxResult.Should().Be(0);
+        minResult.Should().Be(0);
+    }
 }
