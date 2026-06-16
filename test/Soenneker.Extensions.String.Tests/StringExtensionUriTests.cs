@@ -10,7 +10,10 @@ public class StringExtensionUriTests
     [Arguments("http://example.com", true)]
     [Arguments("mailto:test@example.com", true)]
     [Arguments("ftp://files.example.com/resource", true)]
+    [Arguments("file:///relative/path", true)]
     [Arguments("/relative/path", false)]
+    [Arguments("C:/relative/path", false)]
+    [Arguments("C:\\relative\\path", false)]
     [Arguments("not a uri", false)]
     [Arguments(null, false)]
     public void IsUri_ShouldReturnExpectedResult(string? input, bool expected)
@@ -26,6 +29,7 @@ public class StringExtensionUriTests
     [Arguments("https://example.com/path?x=1")]
     [Arguments("mailto:test@example.com")]
     [Arguments("ftp://files.example.com/resource")]
+    [Arguments("file:///relative/path")]
     public void ToUri_ShouldParseAbsoluteUris(string input)
     {
         // Act
@@ -38,11 +42,12 @@ public class StringExtensionUriTests
     }
 
     [Test]
-    public void ToUri_ShouldReturnNullForInvalidUri()
+    [Arguments("not a uri")]
+    [Arguments("/relative/path")]
+    [Arguments("C:/relative/path")]
+    [Arguments("C:\\relative\\path")]
+    public void ToUri_ShouldReturnNullForInvalidUri(string input)
     {
-        // Arrange
-        var input = "not a uri";
-
         // Act
         Uri? uri = input.ToUri();
 

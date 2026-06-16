@@ -1524,15 +1524,15 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Converts a string to a <see cref=\"Uri\"/> if valid and absolute; otherwise returns <c>null</c>.
+    /// Converts a string to a <see cref="Uri"/> if valid and absolute; otherwise returns <c>null</c>.
     /// </summary>
-    /// <param name=\"uri\">The value to convert.</param>
-    /// <returns>A parsed absolute <see cref=\"Uri\"/> when valid; otherwise, null.</returns>
+    /// <param name="uri">The value to convert.</param>
+    /// <returns>A parsed absolute <see cref="Uri"/> when valid; otherwise, null.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Uri? ToUri(this string? uri)
     {
-        if (Uri.TryCreate(uri, UriKind.Absolute, out Uri? result))
+        if (TryCreateExplicitAbsoluteUri(uri, out Uri? result))
             return result;
 
         return null;
@@ -1541,13 +1541,65 @@ public static partial class StringExtension
     /// <summary>
     /// Determines whether the value is a valid absolute URI.
     /// </summary>
-    /// <param name=\"value\">The value to validate.</param>
+    /// <param name="value">The value to validate.</param>
     /// <returns><c>true</c> if the value is a valid absolute URI; otherwise, <c>false</c>.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsUri(this string? value)
     {
-        return Uri.TryCreate(value, UriKind.Absolute, out Uri? uri);
+        return TryCreateExplicitAbsoluteUri(value, out Uri? uri);
+    }
+
+    [Pure]
+    private static bool TryCreateExplicitAbsoluteUri(string? value, out Uri? uri)
+    {
+        uri = null;
+
+        if (!HasExplicitUriScheme(value))
+            return false;
+
+        return Uri.TryCreate(value, UriKind.Absolute, out uri) && uri.IsAbsoluteUri;
+    }
+
+    [Pure]
+    private static bool HasExplicitUriScheme(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        int colonIndex = value.IndexOf(':');
+
+        if (colonIndex <= 0)
+            return false;
+
+        // Treat Windows drive paths as paths, not one-letter custom URI schemes.
+        if (colonIndex == 1 && value.Length > 2 && (value[2] == '\\' || value[2] == '/' && (value.Length == 3 || value[3] != '/')))
+            return false;
+
+        if (!IsUriSchemeFirstChar(value[0]))
+            return false;
+
+        for (var i = 1; i < colonIndex; i++)
+        {
+            if (!IsUriSchemeChar(value[i]))
+                return false;
+        }
+
+        return true;
+    }
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsUriSchemeFirstChar(char value)
+    {
+        return value is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
+    }
+
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsUriSchemeChar(char value)
+    {
+        return IsUriSchemeFirstChar(value) || value is >= '0' and <= '9' or '+' or '-' or '.';
     }
 
     [Pure]
