@@ -545,14 +545,26 @@ public static partial class StringExtension
     [Pure]
     public static List<string> FromCommaSeparatedToList(this string? value)
     {
-        string[]? arr = value.SplitTrimmedNonEmpty(',');
-
-        if (arr is null)
+        if (value.IsNullOrWhiteSpace())
             return [];
 
-        var list = new List<string>(arr.Length);
+        var list = new List<string>();
+        ReadOnlySpan<char> remaining = value.AsSpan();
 
-        list.AddRange(arr);
+        while (true)
+        {
+            int separator = remaining.IndexOf(',');
+            ReadOnlySpan<char> item = (separator < 0 ? remaining : remaining[..separator]).Trim();
+
+            if (!item.IsEmpty)
+                list.Add(item.ToString());
+
+            if (separator < 0)
+                break;
+
+            remaining = remaining[(separator + 1)..];
+        }
+
         return list;
     }
 
@@ -1101,29 +1113,34 @@ public static partial class StringExtension
 
         int outCharsLen = input.Length + extraPad;
 
-        Span<char> chars = outCharsLen <= 512 ? stackalloc char[outCharsLen] : new char[outCharsLen]; // or ArrayPool<char>
-        for (var i = 0; i < input.Length; i++)
-        {
-            char c = input[i];
-            chars[i] = c == '-' ? '+' : c == '_' ? '/' : c;
-        }
-
-        for (var i = 0; i < extraPad; i++)
-            chars[input.Length + i] = '=';
-
         int maxBytes = outCharsLen * 3 / 4;
-        byte[] rented = ArrayPool<byte>.Shared.Rent(maxBytes);
+        char[]? rentedChars = null;
+        byte[] rentedBytes = ArrayPool<byte>.Shared.Rent(maxBytes);
+        Span<char> chars = outCharsLen <= 512
+            ? stackalloc char[outCharsLen]
+            : (rentedChars = ArrayPool<char>.Shared.Rent(outCharsLen)).AsSpan(0, outCharsLen);
 
         try
         {
-            if (!Convert.TryFromBase64Chars(chars, rented, out int written))
+            for (var i = 0; i < input.Length; i++)
+            {
+                char c = input[i];
+                chars[i] = c == '-' ? '+' : c == '_' ? '/' : c;
+            }
+
+            for (var i = 0; i < extraPad; i++)
+                chars[input.Length + i] = '=';
+
+            if (!Convert.TryFromBase64Chars(chars, rentedBytes, out int written))
                 throw new FormatException("Invalid Base64 data.");
 
-            return Encoding.UTF8.GetString(rented, 0, written);
+            return Encoding.UTF8.GetString(rentedBytes, 0, written);
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(rented);
+            ArrayPool<byte>.Shared.Return(rentedBytes);
+            if (rentedChars is not null)
+                ArrayPool<char>.Shared.Return(rentedChars);
         }
     }
 
