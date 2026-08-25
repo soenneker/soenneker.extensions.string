@@ -1,4 +1,4 @@
-﻿using Soenneker.Culture.English.US;
+using Soenneker.Culture.English.US;
 using System;
 using System.Diagnostics.Contracts;
 using System.Globalization;
@@ -26,11 +26,10 @@ public static partial class StringExtension
         if (string.IsNullOrEmpty(value))
             return false;
 
-        ReadOnlySpan<char> s = value; // implicit conversion; null becomes default (handled above)
+        ReadOnlySpan<char> s = value;
 
         for (var i = 0; i < s.Length; i++)
         {
-            // Branchless ASCII digit check
             if ((uint)(s[i] - '0') > 9u)
                 return false;
         }
@@ -47,7 +46,6 @@ public static partial class StringExtension
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double? ToDouble(this string? value)
     {
-        // Let TryParse handle whitespace to avoid a separate Trim() pass
         return double.TryParse(value, _floatStyles, CultureEnUsCache.Instance, out double result) ? result : null;
     }
 
@@ -60,7 +58,6 @@ public static partial class StringExtension
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static decimal? ToDecimal(this string? value)
     {
-        // Same rationale as ToDouble; NumberStyles.Float works for decimal too
         return decimal.TryParse(value, _floatStyles, CultureEnUsCache.Instance, out decimal result) ? result : null;
     }
 
@@ -68,9 +65,6 @@ public static partial class StringExtension
     /// Converts the specified string to an integer. If the conversion fails, it returns 0.
     /// </summary>
     /// <param name="str">The string to convert to an integer. Can be null.</param>
-    /// <summary>
-    /// Converts the specified string to an integer. If the conversion fails, it returns 0.
-    /// </summary>
     /// <returns>An integer value if the string can be parsed; otherwise, 0.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -127,7 +127,7 @@ public static partial class StringExtension
         for (; i < s.Length; i++)
         {
             char c = s[i];
-            if ((uint)(c - 'a') <= 'z' - 'a' || c.IsLowerFast())
+            if ((uint)(c - 'a') <= 'z' - 'a' || c > 127 && c.IsLowerFast())
                 break;
         }
 

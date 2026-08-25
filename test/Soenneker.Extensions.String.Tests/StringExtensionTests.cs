@@ -180,6 +180,81 @@ public class StringExtensionTests
     }
 
     [Test]
+    [Arguments("MTIzNA==", "1234")]
+    [Arguments("MTIzNA", "1234")]
+    [Arguments("MTIzNA==\r\n", "1234")]
+    [Arguments("SGVsbG8td29ybGQ_", "Hello-world?")]
+    public void ToStringFromBase64_should_decode_standard_and_url_formats(string input, string expected)
+    {
+        input.ToStringFromBase64().Should().Be(expected);
+    }
+
+    [Test]
+    [Arguments(null, false)]
+    [Arguments("0", false)]
+    [Arguments("1", true)]
+    [Arguments("TRUE", true)]
+    [Arguments("false", false)]
+    [Arguments(" true ", true)]
+    [Arguments("invalid", false)]
+    public void ToBool_should_preserve_supported_parsing(string? input, bool expected)
+    {
+        input.ToBool().Should().Be(expected);
+    }
+
+    [Test]
+    [Arguments(null, false)]
+    [Arguments("", false)]
+    [Arguments("   ", false)]
+    [Arguments("abc123", true)]
+    [Arguments("abc-123", false)]
+    public void IsAlphaNumeric_should_identify_letters_and_digits(string? input, bool expected)
+    {
+        input.IsAlphaNumeric().Should().Be(expected);
+    }
+
+    [Test]
+    public void ToEscapedForScriban_should_reuse_unchanged_input()
+    {
+        var input = new string("ordinary value".ToCharArray());
+
+        string result = input.ToEscapedForScriban();
+
+        ReferenceEquals(input, result).Should().BeTrue();
+    }
+
+    [Test]
+    [Arguments("  one, two, , three  ", ',', new[] { "one", "two", "three" })]
+    [Arguments("   ", ',', null)]
+    public void SplitTrimmedNonEmpty_should_trim_and_omit_empty_values(string input, char delimiter, string[]? expected)
+    {
+        input.SplitTrimmedNonEmpty(delimiter).Should().BeEquivalentTo(expected);
+    }
+
+    [Test]
+    public void ToUnixLineBreaks_should_replace_only_crlf_pairs()
+    {
+        "one\r\ntwo\nthree\rfour".ToUnixLineBreaks().Should().Be("one\ntwo\nthree\rfour");
+    }
+
+    [Test]
+    [Arguments("text/plain; charset=us-ascii", 20127)]
+    [Arguments("text/plain; charset=iso-8859-1", 28591)]
+    [Arguments("text/plain; charset=utf-32", 12000)]
+    [Arguments("text/plain; charset=utf-16be", 1201)]
+    [Arguments("application/json; charset=utf-8", 65001)]
+    public void GetEncoding_should_return_cached_common_encodings(string contentType, int expectedCodePage)
+    {
+        contentType.GetEncoding().CodePage.Should().Be(expectedCodePage);
+    }
+
+    [Test]
+    public void Truncate_should_return_requested_prefix()
+    {
+        "abcdefgh".Truncate(4).Should().Be("abcd");
+    }
+
+    [Test]
     [Arguments(null, 0)]
     [Arguments(" ", 0)]
     [Arguments("1", 1)]

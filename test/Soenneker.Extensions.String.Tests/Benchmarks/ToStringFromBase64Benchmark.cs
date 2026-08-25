@@ -14,7 +14,7 @@ public class ToStringFromBase64Benchmark
     public void Setup() => _value = Convert.ToBase64String(Encoding.UTF8.GetBytes(new string('a', 8192)));
 
     [Benchmark]
-    public string PooledChars() => _value.ToStringFromBase64();
+    public string Optimized() => _value.ToStringFromBase64();
 
     [Benchmark(Baseline = true)]
     public string AllocatedChars() => Legacy(_value);

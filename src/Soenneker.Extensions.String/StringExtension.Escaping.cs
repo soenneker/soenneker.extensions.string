@@ -60,7 +60,7 @@ public static partial class StringExtension
     [Pure]
     public static string ToEscapedForScriban(this string? input)
     {
-        if (input.IsNullOrWhiteSpace())
+        if (input.IsNullOrEmpty())
             return "";
 
         ReadOnlySpan<char> s = input;
@@ -74,6 +74,7 @@ public static partial class StringExtension
         var i = 0;
         var seenNonWs = false;
         var pendingWs = 0;
+        var changed = false;
 
         while (i < s.Length)
         {
@@ -81,12 +82,14 @@ public static partial class StringExtension
 
             if (c == '{' && i + 1 < s.Length && s[i + 1] == '{')
             {
+                changed = true;
                 i += 2;
                 continue;
             }
 
             if (c == '}' && i + 1 < s.Length && s[i + 1] == '}')
             {
+                changed = true;
                 i += 2;
                 continue;
             }
@@ -102,10 +105,14 @@ public static partial class StringExtension
 
             bool isWs = char.IsWhiteSpace(mapped);
 
+            if (mapped != c || isWs && mapped != ' ')
+                changed = true;
+
             if (!seenNonWs)
             {
                 if (isWs)
                 {
+                    changed = true;
                     i++;
                     continue;
                 }
@@ -131,6 +138,12 @@ public static partial class StringExtension
 
         if (outLen == 0)
             return "";
+
+        if (pendingWs != 0)
+            changed = true;
+
+        if (!changed && outLen == input.Length)
+            return input;
 
         // Pass 2:
         // Same state machine as pass 1, but write directly.

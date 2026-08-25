@@ -48,7 +48,7 @@ public static partial class StringExtension
             return "";
 
         // Allocate a new string from the first 'length' characters.
-        return new string(value.AsSpan(0, length));
+        return value[..length];
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ public static partial class StringExtension
     [Pure]
     public static bool IsAlphaNumeric(this string? value)
     {
-        if (value.IsNullOrWhiteSpace())
+        if (value.IsNullOrEmpty())
             return false;
 
         for (var i = 0; i < value.Length; i++)
@@ -457,7 +457,7 @@ public static partial class StringExtension
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTimeOffset? ToIsoDateTimeOffset(this string? value)
     {
-        if (value.IsNullOrWhiteSpace())
+        if (value.IsNullOrEmpty())
             return null;
 
         return DateTimeOffset.TryParseExact(value, _isoDateTimeOffsetFormats, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTimeOffset dto)
@@ -483,26 +483,7 @@ public static partial class StringExtension
     [Pure]
     public static string ToDashesFromPeriods(this string value)
     {
-        int first = value.IndexOf('.');
-
-        if (first < 0)
-            return value; // return original ref
-
-        return string.Create(value.Length, (value, first), static (Span<char> dst, (string src, int start) st) =>
-        {
-            (string src, int start) = st;
-            // copy the prefix unchanged
-            src.AsSpan(0, start)
-               .CopyTo(dst);
-
-            // from first '.' onward, replace per char
-            ReadOnlySpan<char> s = src.AsSpan();
-
-            for (int i = start; i < s.Length; i++)
-            {
-                dst[i] = s[i] == '.' ? '-' : s[i];
-            }
-        });
+        return value.Replace('.', '-');
     }
 
     /// <summary>
@@ -545,7 +526,7 @@ public static partial class StringExtension
     [Pure]
     public static List<string> FromCommaSeparatedToList(this string? value)
     {
-        if (value.IsNullOrWhiteSpace())
+        if (value.IsNullOrEmpty())
             return [];
 
         var list = new List<string>();
@@ -578,12 +559,11 @@ public static partial class StringExtension
     [Pure]
     public static string[]? SplitTrimmedNonEmpty(this string? value, char delimiter)
     {
-        if (value.IsNullOrWhiteSpace())
+        if (value.IsNullOrEmpty())
             return null;
 
-        string[] arr = value.AsSpan()
-                            .SplitTrimmedNonEmpty(delimiter);
-        return arr.Length == 0 ? null : arr;
+        string[] result = value.AsSpan().SplitTrimmedNonEmpty(delimiter);
+        return result.Length == 0 ? null : result;
     }
 
     /// <summary>
@@ -595,10 +575,7 @@ public static partial class StringExtension
         if (str.IsNullOrEmpty())
             return [];
 
-        int len = Encoding.UTF8.GetByteCount(str);
-        byte[] bytes = GC.AllocateUninitializedArray<byte>(len);
-        Encoding.UTF8.GetBytes(str.AsSpan(), bytes);
-        return bytes;
+        return Encoding.UTF8.GetBytes(str);
     }
 
     /// <summary>
@@ -636,38 +613,7 @@ public static partial class StringExtension
     [Pure]
     public static string ToUnixLineBreaks(this string value)
     {
-        ReadOnlySpan<char> s = value;
-        var pairs = 0;
-
-        for (var i = 0; i + 1 < s.Length; i++)
-        {
-            if (s[i] == '\r' && s[i + 1] == '\n')
-                pairs++;
-        }
-
-        if (pairs == 0)
-            return value; // return original ref
-
-        int outLen = s.Length - pairs;
-
-        // state is the original string (class, OK) — not a ReadOnlySpan<char>
-        return string.Create(outLen, value, static (dst, src) =>
-        {
-            ReadOnlySpan<char> ss = src.AsSpan();
-            var w = 0;
-            for (var r = 0; r < ss.Length; r++)
-            {
-                if (r + 1 < ss.Length && ss[r] == '\r' && ss[r + 1] == '\n')
-                {
-                    dst[w++] = '\n';
-                    r++; // skip '\n'
-                }
-                else
-                {
-                    dst[w++] = ss[r];
-                }
-            }
-        });
+        return value.Replace("\r\n", "\n", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -1079,14 +1025,7 @@ public static partial class StringExtension
         if (str.IsNullOrEmpty())
             return new MemoryStream([]);
 
-        // Determine how many bytes are needed in UTF-8.
-        int byteCount = Encoding.UTF8.GetByteCount(str);
-
-        // Allocate one uninitialized array for the exact size needed.
-        byte[] buffer = GC.AllocateUninitializedArray<byte>(byteCount);
-
-        // Encode directly into the buffer.
-        Encoding.UTF8.GetBytes(str.AsSpan(), buffer);
+        byte[] buffer = Encoding.UTF8.GetBytes(str);
 
         // Wrap the buffer in a read-only MemoryStream.
         // The 'publiclyVisible' parameter (last bool) allows direct array access via GetBuffer(); 
@@ -1100,28 +1039,37 @@ public static partial class StringExtension
     [Pure]
     public static string ToStringFromBase64(this string s)
     {
-        if (s.IsNullOrWhiteSpace())
+        if (s.IsNullOrEmpty())
             return string.Empty;
 
         ReadOnlySpan<char> input = s.AsSpan();
 
-        int pad = input.Length & 3;
-        if (pad == 1)
-            throw new FormatException("Invalid Base64URL length.");
-
-        int extraPad = pad == 0 ? 0 : 4 - pad;
-
-        int outCharsLen = input.Length + extraPad;
-
-        int maxBytes = outCharsLen * 3 / 4;
         char[]? rentedChars = null;
-        byte[] rentedBytes = ArrayPool<byte>.Shared.Rent(maxBytes);
-        Span<char> chars = outCharsLen <= 512
-            ? stackalloc char[outCharsLen]
-            : (rentedChars = ArrayPool<char>.Shared.Rent(outCharsLen)).AsSpan(0, outCharsLen);
+        byte[]? rentedBytes = null;
+        int maxBytes = (input.Length + 3) / 4 * 3;
+        Span<byte> bytes = maxBytes <= _largeStackAllocThreshold
+            ? stackalloc byte[maxBytes]
+            : (rentedBytes = ArrayPool<byte>.Shared.Rent(maxBytes)).AsSpan(0, maxBytes);
 
         try
         {
+            // Avoid scanning and copying ordinary Base64. This also lets the runtime
+            // handle permitted whitespace without it affecting padding calculations.
+            bool shortBase64Url = input.Length <= 64 && input.IndexOfAny('-', '_') >= 0;
+            if (!shortBase64Url && Convert.TryFromBase64Chars(input, bytes, out int standardWritten))
+                return Encoding.UTF8.GetString(bytes[..standardWritten]);
+
+            int pad = input.Length & 3;
+            if (pad == 1)
+                throw new FormatException("Invalid Base64URL length.");
+
+            int extraPad = pad == 0 ? 0 : 4 - pad;
+            int outCharsLen = input.Length + extraPad;
+
+            Span<char> chars = outCharsLen <= _largeStackAllocThreshold
+                ? stackalloc char[outCharsLen]
+                : (rentedChars = ArrayPool<char>.Shared.Rent(outCharsLen)).AsSpan(0, outCharsLen);
+
             for (var i = 0; i < input.Length; i++)
             {
                 char c = input[i];
@@ -1131,14 +1079,16 @@ public static partial class StringExtension
             for (var i = 0; i < extraPad; i++)
                 chars[input.Length + i] = '=';
 
-            if (!Convert.TryFromBase64Chars(chars, rentedBytes, out int written))
+            if (!Convert.TryFromBase64Chars(chars, bytes, out int written))
                 throw new FormatException("Invalid Base64 data.");
 
-            return Encoding.UTF8.GetString(rentedBytes, 0, written);
+            return Encoding.UTF8.GetString(bytes[..written]);
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(rentedBytes);
+            if (rentedBytes is not null)
+                ArrayPool<byte>.Shared.Return(rentedBytes);
+
             if (rentedChars is not null)
                 ArrayPool<char>.Shared.Return(rentedChars);
         }
@@ -1184,13 +1134,7 @@ public static partial class StringExtension
             return null;
 
         ReadOnlySpan<char> s = value.AsSpan();
-        // Pre-count colons to estimate capacity
-        var colonCount = 0;
-        for (var i = 0; i < s.Length; i++)
-        {
-            if (s[i] == ':')
-                colonCount++;
-        }
+        int colonCount = s.Count(':');
 
         var list = new List<string>(colonCount + 1);
 
@@ -1295,13 +1239,15 @@ public static partial class StringExtension
         if (s.Length == 1)
             return s[0] == '1';
 
-        if (s.Equals("true".AsSpan(), StringComparison.OrdinalIgnoreCase))
-            return true;
+        if (s.Length == 4)
+        {
+            return (s[0] | 0x20) == 't' &&
+                   (s[1] | 0x20) == 'r' &&
+                   (s[2] | 0x20) == 'u' &&
+                   (s[3] | 0x20) == 'e';
+        }
 
-        if (s.Equals("false".AsSpan(), StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        return bool.TryParse(value, out bool b) && b;
+        return s.Length > 4 && (char.IsWhiteSpace(s[0]) || char.IsWhiteSpace(s[^1])) && bool.TryParse(s, out bool result) && result;
     }
 
     /// <summary>
@@ -1373,21 +1319,19 @@ public static partial class StringExtension
     {
         if (str.Length == 10 || (str.Length == 11 && str[0] == '1') || (str.Length == 12 && str.StartsWith("+1")))
         {
-            Span<char> spanNumber = stackalloc char[14]; // Pre-allocated for the final format
             int offset = str.Length == 10 ? 0 : str.Length == 11 ? 1 : 2;
 
-            spanNumber[0] = '(';
-            str.AsSpan(offset, 3)
-               .CopyTo(spanNumber.Slice(1, 3));
-            spanNumber[4] = ')';
-            spanNumber[5] = ' ';
-            str.AsSpan(offset + 3, 3)
-               .CopyTo(spanNumber.Slice(6, 3));
-            spanNumber[9] = '-';
-            str.AsSpan(offset + 6, 4)
-               .CopyTo(spanNumber.Slice(10, 4));
-
-            return new string(spanNumber);
+            return string.Create(14, (str, offset), static (destination, state) =>
+            {
+                (string source, int start) = state;
+                destination[0] = '(';
+                source.AsSpan(start, 3).CopyTo(destination[1..]);
+                destination[4] = ')';
+                destination[5] = ' ';
+                source.AsSpan(start + 3, 3).CopyTo(destination[6..]);
+                destination[9] = '-';
+                source.AsSpan(start + 6, 4).CopyTo(destination[10..]);
+            });
         }
 
         throw new ArgumentException("Invalid phone number format. Expected formats: 8887737326, 18887737326, or +18887737326");
@@ -1499,8 +1443,7 @@ public static partial class StringExtension
     {
         fileName.ThrowIfNullOrEmpty();
 
-        ReadOnlySpan<char> ext = Path.GetExtension(fileName)
-                                     .AsSpan();
+        ReadOnlySpan<char> ext = Path.GetExtension(fileName.AsSpan());
         if (ext.IsEmpty)
             return string.Empty;
 
@@ -1581,7 +1524,7 @@ public static partial class StringExtension
     [Pure]
     private static bool HasExplicitUriScheme(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrEmpty(value))
             return false;
 
         int colonIndex = value.IndexOf(':');
@@ -1622,7 +1565,7 @@ public static partial class StringExtension
     [Pure]
     public static bool IsHttpUriLike(this string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        if (string.IsNullOrEmpty(value))
             return false;
 
         ReadOnlySpan<char> span = value.AsSpan();
@@ -1714,16 +1657,14 @@ public static partial class StringExtension
             return input;
 
         ReadOnlySpan<char> raw = input.AsSpan();
+        ReadOnlySpan<char> s = raw.Trim();
 
         // If already clean and no fences, return original reference
-        bool hasOuterWs = raw.Length != raw.Trim()
-                                           .Length;
+        bool hasOuterWs = raw.Length != s.Length;
         bool mightHaveFence = raw.Length >= 3 && (raw.StartsWith("```".AsSpan()) || raw.EndsWith("```".AsSpan()));
 
         if (!hasOuterWs && !mightHaveFence)
             return input;
-
-        ReadOnlySpan<char> s = raw.Trim();
 
         var start = 0;
         if (s.StartsWith("```".AsSpan()))
@@ -1801,6 +1742,22 @@ public static partial class StringExtension
             rest.Equals("utf16".AsSpan(), StringComparison.OrdinalIgnoreCase) ||
             rest.Equals("unicode".AsSpan(), StringComparison.OrdinalIgnoreCase))
             return Encoding.Unicode;
+
+        if (rest.Equals("us-ascii", StringComparison.OrdinalIgnoreCase) ||
+            rest.Equals("ascii", StringComparison.OrdinalIgnoreCase))
+            return Encoding.ASCII;
+
+        if (rest.Equals("iso-8859-1", StringComparison.OrdinalIgnoreCase) ||
+            rest.Equals("latin1", StringComparison.OrdinalIgnoreCase))
+            return Encoding.Latin1;
+
+        if (rest.Equals("utf-32", StringComparison.OrdinalIgnoreCase) ||
+            rest.Equals("utf32", StringComparison.OrdinalIgnoreCase))
+            return Encoding.UTF32;
+
+        if (rest.Equals("utf-16be", StringComparison.OrdinalIgnoreCase) ||
+            rest.Equals("unicodefffe", StringComparison.OrdinalIgnoreCase))
+            return Encoding.BigEndianUnicode;
 
         try
         {
