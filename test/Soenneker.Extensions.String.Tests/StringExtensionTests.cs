@@ -77,6 +77,7 @@ public class StringExtensionTests
     [Arguments(null, null)]
     [Arguments("arst23k", "arst23k")]
     [Arguments("arst23k@3 3 test", "arst23k@33test")]
+    [Arguments("before\u00A0middle after", "beforemiddleafter")]
     public void RemoveWhiteSpace_should_remove_white_space(string? test, string? expected)
     {
         string? result = test.RemoveWhiteSpace();
@@ -345,6 +346,14 @@ public class StringExtensionTests
     public void ToLowerAndToUpperFirstChar_should_give_result(string input, string expectedOutput)
     {
         input.ToLowerInvariantFast().ToUpperFirstChar().Should().Be(expectedOutput);
+    }
+
+    [Test]
+    [Arguments("AÉÖ", "aéö")]
+    [Arguments("ABC Δ", "abc δ")]
+    public void ToLowerInvariantFast_should_lower_non_ascii_characters(string input, string expected)
+    {
+        input.ToLowerInvariantFast().Should().Be(expected);
     }
 
     [Test]

@@ -108,7 +108,9 @@ public static partial class StringExtension
             for (int j = start; j < ss.Length; j++)
             {
                 char c = ss[j];
-                dst[j] = (uint)(c - 'A') <= ('Z' - 'A') ? (char)(c + 32) : c;
+                dst[j] = (uint)(c - 'A') <= ('Z' - 'A')
+                    ? (char)(c + 32)
+                    : c > 127 && c.IsUpperFast() ? c.ToLowerInvariant() : c;
             }
         });
     }

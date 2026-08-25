@@ -29,6 +29,22 @@ public static partial class StringExtension
 
     private static readonly SearchValues<char> _asciiWhiteSpaceSearchValues = SearchValues.Create(" \t\r\n\f\v");
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int IndexOfWhiteSpaceFast(ReadOnlySpan<char> value)
+    {
+        int firstAscii = value.IndexOfAny(_asciiWhiteSpaceSearchValues);
+        int scanLength = firstAscii < 0 ? value.Length : firstAscii;
+
+        for (var i = 0; i < scanLength; i++)
+        {
+            char c = value[i];
+            if (c > 127 && c.IsWhiteSpaceFast())
+                return i;
+        }
+
+        return firstAscii;
+    }
+
     /// <summary>
     /// Truncates a string to the specified length.
     /// </summary>
@@ -143,7 +159,7 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> s = value;
 
-        int first = s.IndexOfAny(_asciiWhiteSpaceSearchValues);
+        int first = IndexOfWhiteSpaceFast(s);
 
         if (first < 0)
             return value;
@@ -493,7 +509,7 @@ public static partial class StringExtension
     public static string ToDashesFromWhiteSpace(this string value)
     {
         ReadOnlySpan<char> s = value.AsSpan();
-        int first = s.IndexOfAny(_asciiWhiteSpaceSearchValues);
+        int first = IndexOfWhiteSpaceFast(s);
 
         if (first < 0)
             return value; // return original ref
@@ -529,7 +545,7 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return [];
 
-        var list = new List<string>();
+        var list = new List<string>(value.AsSpan().Count(',') + 1);
         ReadOnlySpan<char> remaining = value.AsSpan();
 
         while (true)
@@ -1353,6 +1369,20 @@ public static partial class StringExtension
     {
         input.ThrowIfNullOrWhiteSpace();
 
+        bool unchanged = true;
+        for (var i = 0; i < input.Length; i++)
+        {
+            char c = input[i];
+            if ((uint)(c - '0') > 9u && (c != '+' || i != 0))
+            {
+                unchanged = false;
+                break;
+            }
+        }
+
+        if (unchanged)
+            return input;
+
         if (input.Length <= _largeStackAllocThreshold)
         {
             Span<char> result = stackalloc char[input.Length];
@@ -1402,9 +1432,7 @@ public static partial class StringExtension
     [Pure]
     public static string ToTelFormat(this string phoneNumber, int countryCode = 1)
     {
-        string cleanedNumber = SanitizePhoneNumber(phoneNumber);
-
-        return $"tel:+{countryCode}{cleanedNumber}";
+        return ToPhoneUri(phoneNumber, countryCode, "tel:");
     }
 
     /// <summary>
@@ -1427,9 +1455,42 @@ public static partial class StringExtension
     [Pure]
     public static string ToSmsFormat(this string phoneNumber, int countryCode = 1)
     {
-        string cleanedNumber = SanitizePhoneNumber(phoneNumber);
+        return ToPhoneUri(phoneNumber, countryCode, "sms:");
+    }
 
-        return $"sms:+{countryCode}{cleanedNumber}";
+    private static string ToPhoneUri(string phoneNumber, int countryCode, string prefix)
+    {
+        phoneNumber.ThrowIfNullOrWhiteSpace();
+
+        var phoneLength = 0;
+        for (var i = 0; i < phoneNumber.Length; i++)
+        {
+            char c = phoneNumber[i];
+            if ((uint)(c - '0') <= 9u || c == '+' && i == 0)
+                phoneLength++;
+        }
+
+        Span<char> countryCodeBuffer = stackalloc char[11];
+        if (!countryCode.TryFormat(countryCodeBuffer, out int countryCodeLength, provider: CultureInfo.InvariantCulture))
+            throw new InvalidOperationException("Could not format the country code.");
+
+        int length = prefix.Length + 1 + countryCodeLength + phoneLength;
+        return string.Create(length, (phoneNumber, countryCode, prefix), static (destination, state) =>
+        {
+            state.prefix.AsSpan().CopyTo(destination);
+            int position = state.prefix.Length;
+            destination[position++] = '+';
+
+            state.countryCode.TryFormat(destination[position..], out int written, provider: CultureInfo.InvariantCulture);
+            position += written;
+
+            for (var i = 0; i < state.phoneNumber.Length; i++)
+            {
+                char c = state.phoneNumber[i];
+                if ((uint)(c - '0') <= 9u || c == '+' && i == 0)
+                    destination[position++] = c;
+            }
+        });
     }
 
     /// <summary>
