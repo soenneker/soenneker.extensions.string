@@ -14,6 +14,7 @@ public static partial class StringExtension
     /// Utilizes Uri.EscapeDataString
     /// </summary>
     /// <remarks>https://stackoverflow.com/questions/602642/server-urlencode-vs-httputility-urlencode/1148326#1148326</remarks>
+    /// <returns>Use whenever a URL needs to be encoded etc. Utilizes Uri.EscapeDataString.</returns>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
     public static string? ToEscaped(this string? value)
@@ -30,6 +31,7 @@ public static partial class StringExtension
     /// <summary>
     /// Utilizes Uri.UnescapeDataString
     /// </summary>
+    /// <returns>Utilizes Uri.UnescapeDataString.</returns>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
     public static string? ToUnescaped(this string? value)

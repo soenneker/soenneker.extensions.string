@@ -13,6 +13,7 @@ public static partial class StringExtension
     /// <summary>
     /// Does not check for empty GUID, <see cref="IsValidPopulatedGuid"/> for this.
     /// </summary>
+    /// <returns>Does not check for empty GUID, <see cref="IsValidPopulatedGuid"/> for this.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidGuid(this string? input)
@@ -23,6 +24,7 @@ public static partial class StringExtension
     /// <summary>
     /// Makes sure result is not an empty GUID.
     /// </summary>
+    /// <returns>Makes sure result is not an empty GUID.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidPopulatedGuid(this string? input)
@@ -33,6 +35,7 @@ public static partial class StringExtension
     /// <summary>
     /// Does not check for empty GUID, <see cref="IsValidPopulatedNullableGuid"/> for this.
     /// </summary>
+    /// <returns>Does not check for empty GUID, <see cref="IsValidPopulatedNullableGuid"/> for this.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidNullableGuid(this string? input)
@@ -43,6 +46,7 @@ public static partial class StringExtension
     /// <summary>
     /// Makes sure result is not an empty GUID.
     /// </summary>
+    /// <returns>Makes sure result is not an empty GUID.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsValidPopulatedNullableGuid(this string? input)

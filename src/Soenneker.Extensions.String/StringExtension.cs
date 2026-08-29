@@ -340,11 +340,11 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Executes the contains any operation.
+    /// Determines whether the string contains at least one requested character.
     /// </summary>
-    /// <param name="value">The value.</param>
-    /// <param name="searchValues">The search values.</param>
-    /// <returns>A value indicating whether the operation succeeded.</returns>
+    /// <param name="value">The string to inspect or convert.</param>
+    /// <param name="searchValues">The optimized character set to search for.</param>
+    /// <returns>True when any requested character occurs.</returns>
     [Pure]
     public static bool ContainsAny(this string value, SearchValues<char> searchValues)
     {
@@ -356,11 +356,11 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Executes the contains any operation.
+    /// Determines whether the string contains at least one requested character.
     /// </summary>
-    /// <param name="value">The value.</param>
-    /// <param name="characters">The characters.</param>
-    /// <returns>A value indicating whether the operation succeeded.</returns>
+    /// <param name="value">The string to search.</param>
+    /// <param name="characters">The candidate characters to search for.</param>
+    /// <returns>True when any requested character occurs.</returns>
     [Pure]
     public static bool ContainsAny(this string value, ReadOnlySpan<char> characters)
     {
@@ -424,15 +424,16 @@ public static partial class StringExtension
     /// <summary>
     /// From Date, with "dd/MM/yyyy" (assuming local)       
     /// </summary>
+    /// <returns>From Date, with "dd/MM/yyyy" (assuming local).</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime? ToDateTime(this string? date) =>
         DateTime.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTime dt) ? dt : null;
 
     /// <summary>
-    /// Executes the to utc date time operation.
+    /// Parses a string with invariant culture and adjusts the result to UTC; invalid input produces null.
     /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <param name="value">The date and time text to parse.</param>
+    /// <returns>The parsed UTC-adjusted value, or null when parsing fails.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTime? ToUtcDateTime(this string? value) =>
         DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal, out DateTime dt) ? dt : null;
@@ -441,6 +442,7 @@ public static partial class StringExtension
     /// Parses a string into a DateTimeOffset using invariant culture.
     /// If the input has no offset/zone, it is assumed to be local.
     /// </summary>
+    /// <returns>Parses a string into a DateTimeOffset using invariant culture. If the input has no offset/zone, it is assumed to be local.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTimeOffset? ToDateTimeOffset(this string? value) =>
         DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dto) ? dto : null;
@@ -449,6 +451,7 @@ public static partial class StringExtension
     /// Parses a string into a DateTimeOffset using invariant culture, then normalizes it to UTC (offset 00:00).
     /// If the input has no offset/zone, it is assumed to be local before conversion to UTC.
     /// </summary>
+    /// <returns>Parses a string into a DateTimeOffset using invariant culture, then normalizes it to UTC (offset 00:00). If the input has no offset/zone, it is assumed to be local before conversion to UTC.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTimeOffset? ToUtcDateTimeOffset(this string? value)
     {
@@ -470,6 +473,7 @@ public static partial class StringExtension
     /// Strict ISO-8601 parse (recommended for APIs). Handles "Z" and explicit offsets reliably.
     /// If no offset is present, it will assume local.
     /// </summary>
+    /// <returns>Strict ISO-8601 parse (recommended for APIs). Handles "Z" and explicit offsets reliably. If no offset is present, it will assume local.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTimeOffset? ToIsoDateTimeOffset(this string? value)
     {
@@ -485,6 +489,7 @@ public static partial class StringExtension
     /// Strict ISO-8601 parse, normalized to UTC (offset 00:00).
     /// If no offset is present, assumes local before conversion to UTC.
     /// </summary>
+    /// <returns>Strict ISO-8601 parse, normalized to UTC (offset 00:00). If no offset is present, assumes local before conversion to UTC.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DateTimeOffset? ToUtcIsoDateTimeOffset(this string? value)
     {
@@ -496,6 +501,7 @@ public static partial class StringExtension
     /// <summary>
     /// Replaces periods with dashes
     /// </summary>
+    /// <returns>Replaces periods with dashes.</returns>
     [Pure]
     public static string ToDashesFromPeriods(this string value)
     {
@@ -505,6 +511,7 @@ public static partial class StringExtension
     /// <summary>
     /// Replaces whitespace with dashes
     /// </summary>
+    /// <returns>Replaces whitespace with dashes.</returns>
     [Pure]
     public static string ToDashesFromWhiteSpace(this string value)
     {
@@ -585,6 +592,7 @@ public static partial class StringExtension
     /// <summary>
     /// Equivalent to Encoding.UTF8.GetBytes(value)
     /// </summary>
+    /// <returns>A value equivalent to Encoding.UTF8.GetBytes(value).</returns>
     [Pure]
     public static byte[] ToBytes(this string str)
     {
@@ -595,10 +603,10 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Executes the to bytes from base64 operation.
+    /// Decodes Base64 text to bytes; null or empty text produces an empty array.
     /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <param name="value">The Base64 text to decode.</param>
+    /// <returns>The decoded bytes.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToBytesFromBase64(this string value)
     {
@@ -610,10 +618,10 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Executes the to bytes from hex operation.
+    /// Decodes hexadecimal text to bytes; null or empty text produces an empty array.
     /// </summary>
-    /// <param name="hex">The hex.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <param name="hex">The hexadecimal text to decode.</param>
+    /// <returns>The decoded bytes.</returns>
     [Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static byte[] ToBytesFromHex(this string hex)
     {
@@ -626,6 +634,7 @@ public static partial class StringExtension
     /// <summary>
     /// Replaces "\r\n" with "\n"
     /// </summary>
+    /// <returns>Replaces "\r\n" with "\n".</returns>
     [Pure]
     public static string ToUnixLineBreaks(this string value)
     {
@@ -759,6 +768,7 @@ public static partial class StringExtension
     /// <summary>
     /// Shorthand for <see cref="string.IsNullOrEmpty"/>
     /// </summary>
+    /// <returns><see langword="true"/> when the value is null or empty; otherwise <see langword="false"/>.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNullOrEmpty([NotNullWhen(false)] this string? value)
@@ -769,8 +779,9 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Shorthand for value == ""/>
+    /// Determines whether a non-null string contains zero characters.
     /// </summary>
+    /// <returns><see langword="true"/> for an empty string; <see langword="false"/> for null or non-empty text.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsEmpty(this string? value)
@@ -782,6 +793,7 @@ public static partial class StringExtension
     /// Shorthand for <code>string.IsNullOrEmpty() == false</code>
     /// </summary>
     /// <remarks>This should be used over the IsPopulated() method on the IEnumerable extension</remarks>
+    /// <returns><see langword="true"/> when the value is neither null nor empty; otherwise <see langword="false"/>.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool HasContent([NotNullWhen(true)] this string? value)
@@ -792,16 +804,17 @@ public static partial class StringExtension
     /// <summary>
     /// Shorthand for <see cref="string.IsNullOrWhiteSpace"/>
     /// </summary>
+    /// <returns><see langword="true"/> when the value is null, empty, or whitespace-only; otherwise <see langword="false"/>.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsNullOrWhiteSpace([NotNullWhen(false)] this string? value) =>
         string.IsNullOrWhiteSpace(value);
 
     /// <summary>
-    /// Executes the is white space operation.
+    /// Determines whether every character is whitespace; null and empty strings are considered whitespace.
     /// </summary>
-    /// <param name="value">The value.</param>
-    /// <returns>A value indicating whether the operation succeeded.</returns>
+    /// <param name="value">The string to inspect.</param>
+    /// <returns>True when the value contains no non-whitespace characters.</returns>
     [Pure]
     public static bool IsWhiteSpace([NotNullWhen(false)] this string? value)
     {
@@ -865,6 +878,7 @@ public static partial class StringExtension
     /// <summary>
     /// Converts to lowercase, and then removes/replaces characters that are invalid for URIs (does not replace accents right now)
     /// </summary>
+    /// <returns>Converts to lowercase, and then removes/replaces characters that are invalid for URIs (does not replace accents right now).</returns>
     [Pure]
     [return: NotNullIfNotNull(nameof(value))]
     public static string? Slugify(this string? value)
@@ -1001,6 +1015,7 @@ public static partial class StringExtension
     /// Ignores the case of the string being passed in. 
     /// </summary>
     /// <exception cref="ArgumentException">If parsing fails</exception>
+    /// <returns>Ignores the case of the string being passed in.</returns>
     [Pure]
     public static TEnum ToEnum<TEnum>(this string value) where TEnum : struct, Enum
     {
@@ -1011,11 +1026,11 @@ public static partial class StringExtension
     }
 
     /// <summary>
-    /// Attempts to execute to enum.
+    /// Parses an enum name or numeric value without regard to case; null, empty, or invalid input produces null.
     /// </summary>
-    /// <typeparam name="TEnum">The TEnum type.</typeparam>
-    /// <param name="value">The value.</param>
-    /// <returns>The result of the operation.</returns>
+    /// <typeparam name="TEnum">The enum type to parse.</typeparam>
+    /// <param name="value">Receives the parsed value when conversion succeeds.</param>
+    /// <returns>The parsed enum value, or null when parsing fails.</returns>
     [Pure]
     public static TEnum? TryToEnum<TEnum>(this string? value) where TEnum : struct, Enum
     {
@@ -1034,6 +1049,7 @@ public static partial class StringExtension
     /// Builds a MemoryStream from a string.
     /// </summary>
     /// <remarks>Preferably you should be using Soenneker.Utils.MemoryStreamUtil!</remarks>
+    /// <returns>Builds a MemoryStream from a string.</returns>
     [Pure]
     public static MemoryStream ToMemoryStream(this string str)
     {
@@ -1052,6 +1068,7 @@ public static partial class StringExtension
     /// Takes a Base64 encoded string, converts it to a byte array, and then converts it to a UTF8 string.
     /// </summary>
     /// <remarks>Equivalent to <code>Convert.FromBase64String(str).ToStr()</code></remarks>
+    /// <returns>Takes a Base64 encoded string, converts it to a byte array, and then converts it to a UTF8 string.</returns>
     [Pure]
     public static string ToStringFromBase64(this string s)
     {
@@ -1143,6 +1160,7 @@ public static partial class StringExtension
     /// Essentially wraps string.Split(':').
     /// </summary>
     /// <remarks>Don't use this for splitting into document/partition keys, use <see cref="ToSplitId"/> instead.</remarks>
+    /// <returns>Essentially wraps string.Split(':').</returns>
     [Pure]
     public static List<string>? ToIds(this string? value)
     {
@@ -1169,6 +1187,7 @@ public static partial class StringExtension
     }
 
     /// <summary>Returns slice ranges for partition/document without allocating.</summary>
+    /// <returns>Slice ranges for partition/document without allocating.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static (Range Partition, Range Document) ToSplitIdRanges(this string id)
@@ -1243,6 +1262,7 @@ public static partial class StringExtension
     /// Converts a string to a boolean value. Accepts "true", "false", "1", "0" (case-insensitive).
     /// Returns false if input is null, empty, or unrecognized.
     /// </summary>
+    /// <returns>Converts a string to a boolean value. Accepts "true", "false", "1", "0" (case-insensitive). Returns false if input is null, empty, or unrecognized.</returns>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ToBool(this string? value)
@@ -1623,6 +1643,11 @@ public static partial class StringExtension
         return IsUriSchemeFirstChar(value) || value is >= '0' and <= '9' or '+' or '-' or '.';
     }
 
+    /// <summary>
+    /// Performs a lightweight HTTP/HTTPS URI check by requiring a scheme and rejecting whitespace or control characters.
+    /// </summary>
+    /// <param name="value">The candidate URI text.</param>
+    /// <returns>True when the text passes the lightweight check.</returns>
     [Pure]
     public static bool IsHttpUriLike(this string? value)
     {
