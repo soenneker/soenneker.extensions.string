@@ -49,6 +49,6 @@
     <ItemGroup>
         <PackageReference Include="Soenneker.Culture.English.US" Version="4.0.48" />
         <PackageReference Include="Soenneker.Extensions.Spans.Readonly.Chars" Version="4.0.101" />
-        <PackageReference Include="Soenneker.Utils.Random" Version="4.0.128" />
+        <PackageReference Include="Soenneker.Utils.Random" Version="4.0.129" />
     </ItemGroup>
 </Project>
