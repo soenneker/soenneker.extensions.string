@@ -4,19 +4,12 @@
 [![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.extensions.string/codeql.yml?label=CodeQL&style=for-the-badge)](https://github.com/soenneker/soenneker.extensions.string/actions/workflows/codeql.yml)
 
 # ![](https://user-images.githubusercontent.com/4441470/224455560-91ed3ee7-f510-4041-a8d2-3fc093025112.png) Soenneker.Extensions.String
-A highly optimized library of string extension methods designed to improve performance, readability, and efficiency in .NET applications. This library is ideal for developers looking to streamline common string operations while adhering to best practices and achieving maximum performance.
 
-## Features
-
-- **High Performance:** All methods are optimized for speed and low memory usage, ensuring top-notch performance in critical applications.
-- **Comprehensive Functionality:** Includes a wide range of utility methods for common string operations, such as trimming, splitting, joining, and formatting.
-- **Readability-First:** Enhances code clarity with intuitive method names and streamlined syntax.
-- **Error-Resilient:** Methods are built to handle edge cases gracefully, minimizing potential bugs and exceptions.
-- **Lightweight:** Minimal overhead and dependencies, making it perfect for high-performance applications.
+Practical string extensions for validation, conversion, cleanup, formatting, URL slugs, and other common application code.
 
 ## Installation
 
-```
+```bash
 dotnet add package Soenneker.Extensions.String
 ```
 
@@ -76,4 +69,4 @@ string shuffledString = originalString.Shuffle();
 // shuffledString = "olhel"
 ```
 
-... and more
+These are only a few of the available operations; importing `Soenneker.Extensions.String` makes the full set available on `string` values.
