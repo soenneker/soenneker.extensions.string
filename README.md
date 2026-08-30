@@ -138,6 +138,8 @@ byte[] utf8 = "hello".ToBytes();
 
 `ToStringFromBase64()` accepts standard Base64 and unpadded Base64URL (`-` and `_`). Invalid data throws `FormatException`. `ToBytesFromBase64()` and `ToBytesFromHex()` return an empty array for null/empty input but otherwise use the runtime decoders and propagate formatting errors.
 
+Temporary buffers used by `ToBase64()` and `ToStringFromBase64()` are cleared before pooled storage is returned. The input and returned strings are immutable and remain in managed memory normally.
+
 `GetEncoding()` reads a `charset=` parameter from Content-Type text and falls back to UTF-8 when it is missing, malformed, or unsupported.
 
 ## Specialized helpers

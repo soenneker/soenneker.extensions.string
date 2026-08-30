@@ -10,6 +10,7 @@ using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -1119,11 +1120,16 @@ public static partial class StringExtension
         }
         finally
         {
+            CryptographicOperations.ZeroMemory(bytes);
+
             if (rentedBytes is not null)
-                ArrayPool<byte>.Shared.Return(rentedBytes);
+                ArrayPool<byte>.Shared.Return(rentedBytes, clearArray: false);
 
             if (rentedChars is not null)
-                ArrayPool<char>.Shared.Return(rentedChars);
+            {
+                CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(rentedChars.AsSpan()));
+                ArrayPool<char>.Shared.Return(rentedChars, clearArray: false);
+            }
         }
     }
 
@@ -1151,8 +1157,10 @@ public static partial class StringExtension
         }
         finally
         {
+            CryptographicOperations.ZeroMemory(utf8[..utf8Len]);
+
             if (rented is not null)
-                ArrayPool<byte>.Shared.Return(rented);
+                ArrayPool<byte>.Shared.Return(rented, clearArray: false);
         }
     }
 
@@ -1849,7 +1857,7 @@ public static partial class StringExtension
         {
             return Encoding.GetEncoding(rest.ToString());
         }
-        catch
+        catch (ArgumentException)
         {
             return Encoding.UTF8;
         }
