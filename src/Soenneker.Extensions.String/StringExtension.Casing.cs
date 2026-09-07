@@ -175,11 +175,8 @@ public static partial class StringExtension
     public static string ToLowerOrdinal(this string str)
     {
         ReadOnlySpan<char> s = str;
-        var i = 0;
-        for (; i < s.Length; i++)
-            if ((uint)(s[i] - 'A') <= 'Z' - 'A')
-                break;
-        if (i == s.Length)
+        int i = s.IndexOfAnyInRange('A', 'Z');
+        if (i < 0)
             return str;
 
         return string.Create(s.Length, (str, i), static (dst, st) =>
@@ -213,11 +210,8 @@ public static partial class StringExtension
     public static string ToUpperOrdinal(this string str)
     {
         ReadOnlySpan<char> s = str;
-        var i = 0;
-        for (; i < s.Length; i++)
-            if ((uint)(s[i] - 'a') <= 'z' - 'a')
-                break;
-        if (i == s.Length)
+        int i = s.IndexOfAnyInRange('a', 'z');
+        if (i < 0)
             return str;
 
         return string.Create(s.Length, (str, i), static (dst, st) =>

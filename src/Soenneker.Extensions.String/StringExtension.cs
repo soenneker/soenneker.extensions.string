@@ -24,7 +24,6 @@ public static partial class StringExtension
     /// <summary>
     /// Safe on modern hardware (Intel Core 6th gen+ / AMD Ryzen 1st gen+ / ARM Cortex-A72+).
     /// </summary>
-    private const int _stackallocThreshold = 256;
 
     private const int _largeStackAllocThreshold = 512;
 
@@ -35,6 +34,9 @@ public static partial class StringExtension
     {
         int firstAscii = value.IndexOfAny(_asciiWhiteSpaceSearchValues);
         int scanLength = firstAscii < 0 ? value.Length : firstAscii;
+
+        if (scanLength >= 16 && Ascii.IsValid(value[..scanLength]))
+            return firstAscii;
 
         for (var i = 0; i < scanLength; i++)
         {
@@ -216,10 +218,7 @@ public static partial class StringExtension
         if (first < 0)
             return value;
 
-        int outLen = first;
-        for (int i = first + 1; i < s.Length; i++)
-            if (s[i] != removeChar)
-                outLen++;
+        int outLen = s.Length - 1 - s[(first + 1)..].Count(removeChar);
 
         if (outLen == 0)
             return string.Empty;
@@ -665,32 +664,11 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return value;
 
-        int length = value.Length;
-
-        if (length <= _stackallocThreshold)
+        return string.Create(value.Length, value, static (destination, source) =>
         {
-            Span<char> buffer = stackalloc char[length];
-            value.AsSpan()
-                 .CopyTo(buffer);
-            PerformShuffle(buffer);
-            return new string(buffer);
-        }
-
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rented = pool.Rent(length);
-
-        try
-        {
-            Span<char> buffer = rented.AsSpan(0, length);
-            value.AsSpan()
-                 .CopyTo(buffer);
-            PerformShuffle(buffer);
-            return new string(buffer);
-        }
-        finally
-        {
-            pool.Return(rented);
-        }
+            source.AsSpan().CopyTo(destination);
+            PerformShuffle(destination);
+        });
     }
 
     private static void PerformShuffle(Span<char> buffer)
@@ -716,39 +694,14 @@ public static partial class StringExtension
     [Pure]
     public static string SecureShuffle(this string value)
     {
-        int length = value?.Length ?? 0;
-        if (length == 0)
+        if (value.IsNullOrEmpty())
             return value;
 
-        if (length <= _stackallocThreshold)
+        return string.Create(value.Length, value, static (destination, source) =>
         {
-            Span<char> buffer = stackalloc char[length];
-            value.AsSpan()
-                 .CopyTo(buffer);
-
-            PerformSecureShuffle(buffer);
-            string result = new string(buffer);
-            CryptographicOperations.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes(buffer));
-
-            return result;
-        }
-
-        ArrayPool<char> pool = ArrayPool<char>.Shared;
-        char[] rented = pool.Rent(length);
-
-        try
-        {
-            Span<char> buffer = rented.AsSpan(0, length);
-            value.AsSpan()
-                 .CopyTo(buffer);
-            PerformSecureShuffle(buffer);
-            return new string(buffer);
-        }
-        finally
-        {
-            CryptographicOperations.ZeroMemory(System.Runtime.InteropServices.MemoryMarshal.AsBytes(rented.AsSpan(0, length)));
-            pool.Return(rented, clearArray: false);
-        }
+            source.AsSpan().CopyTo(destination);
+            PerformSecureShuffle(destination);
+        });
     }
 
     private static void PerformSecureShuffle(Span<char> buffer)
@@ -1250,7 +1203,7 @@ public static partial class StringExtension
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string AddPartitionKey(this string documentId, string partitionKey)
     {
-        return string.Concat(partitionKey, ':', documentId);
+        return string.Concat(partitionKey, ":", documentId);
     }
 
     /// <summary>
@@ -1263,7 +1216,7 @@ public static partial class StringExtension
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string AddDocumentId(this string partitionKey, string documentId)
     {
-        return string.Concat(partitionKey, ':', documentId);
+        return string.Concat(partitionKey, ":", documentId);
     }
 
     /// <summary>

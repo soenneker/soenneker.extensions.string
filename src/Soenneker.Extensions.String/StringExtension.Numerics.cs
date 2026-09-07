@@ -26,15 +26,7 @@ public static partial class StringExtension
         if (string.IsNullOrEmpty(value))
             return false;
 
-        ReadOnlySpan<char> s = value;
-
-        for (var i = 0; i < s.Length; i++)
-        {
-            if ((uint)(s[i] - '0') > 9u)
-                return false;
-        }
-
-        return true;
+        return !value.AsSpan().ContainsAnyExceptInRange('0', '9');
     }
 
     /// <summary>
