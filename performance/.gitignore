@@ -1,0 +1,8 @@
+Baseline/
+bin/
+obj/
+BenchmarkDotNet.Artifacts/
+*-run.log
+results/first/
+results/**/*.log
+results/**/*.html

@@ -1,0 +1,52 @@
+{
+  "Soenneker.Culture.English.US": {
+    "repository": "soenneker.culture.english.us",
+    "project": "soenneker.culture.english.us/src/Soenneker.Culture.English.US/Soenneker.Culture.English.US.csproj",
+    "commit": "4c42a2c4166ed8442a7104af25892d263c7c25d8"
+  },
+  "Soenneker.Enums.ContentKinds": {
+    "repository": "soenneker.enums.contentkinds",
+    "project": "soenneker.enums.contentkinds/src/Soenneker.Enums.ContentKinds/Soenneker.Enums.ContentKinds.csproj",
+    "commit": "44d73eaf1a19723a4b8850202492436c314e2564"
+  },
+  "Soenneker.Extensions.Char": {
+    "repository": "soenneker.extensions.char",
+    "project": "soenneker.extensions.char/src/Soenneker.Extensions.Char/Soenneker.Extensions.Char.csproj",
+    "commit": "51be88f54a9307a336bf1387842755a982dc71f8"
+  },
+  "Soenneker.Extensions.Spans.Readonly.Bytes": {
+    "repository": "soenneker.extensions.spans.readonly.bytes",
+    "project": "soenneker.extensions.spans.readonly.bytes/src/Soenneker.Extensions.Spans.Readonly.Bytes/Soenneker.Extensions.Spans.Readonly.Bytes.csproj",
+    "commit": "28fe479f92c0a81e400e8f841819506cc1458759"
+  },
+  "Soenneker.Extensions.Spans.Readonly.Chars": {
+    "repository": "soenneker.extensions.spans.readonly.chars",
+    "project": "soenneker.extensions.spans.readonly.chars/src/Soenneker.Extensions.Spans.Readonly.Chars/Soenneker.Extensions.Spans.Readonly.Chars.csproj",
+    "commit": "c577c907c71db934d59b3ec4aabc370642b8a116"
+  },
+  "Soenneker.Extensions.String": {
+    "repository": "soenneker.extensions.string",
+    "project": "soenneker.extensions.string/src/Soenneker.Extensions.String/Soenneker.Extensions.String.csproj",
+    "commit": "c8603660ab7a919cdc47b8ef89dd1f5777ede5bf"
+  },
+  "Soenneker.Gen.EnumValues": {
+    "repository": "soenneker.gen.enumvalues",
+    "project": "soenneker.gen.enumvalues/src/Soenneker.Gen.EnumValues/Soenneker.Gen.EnumValues.csproj",
+    "commit": "78b6d19ece5ac3e20bf526c13cd60d1c2f8a8b1f"
+  },
+  "Soenneker.Hashing.Sha256": {
+    "repository": "soenneker.hashing.sha256",
+    "project": "soenneker.hashing.sha256/src/Soenneker.Hashing.Sha256/Soenneker.Hashing.Sha256.csproj",
+    "commit": "b723a3ae2ccb0f912f6f5753d120fed1ad5bf9c1"
+  },
+  "Soenneker.Utils.PooledStringBuilders": {
+    "repository": "soenneker.utils.pooledstringbuilders",
+    "project": "soenneker.utils.pooledstringbuilders/src/Soenneker.Utils.PooledStringBuilders/Soenneker.Utils.PooledStringBuilders.csproj",
+    "commit": "55373a8d425d81340e6168258b792cff29f0537a"
+  },
+  "Soenneker.Utils.Random": {
+    "repository": "soenneker.utils.random",
+    "project": "soenneker.utils.random/src/Soenneker.Utils.Random/Soenneker.Utils.Random.csproj",
+    "commit": "1f96c7435d5d89be322dbc56c742fd053f146762"
+  }
+}

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 
@@ -9,6 +10,9 @@ namespace Soenneker.Extensions.String;
 /// </summary>
 public static partial class StringExtension
 {
+    private static readonly SearchValues<char> _scribanChanges =
+        SearchValues.Create("{}\"\\\t\n\v\f\r\u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000");
+
     /// <summary>
     /// Use whenever a URL needs to be encoded etc.
     /// Utilizes Uri.EscapeDataString
@@ -66,6 +70,9 @@ public static partial class StringExtension
             return "";
 
         ReadOnlySpan<char> s = input;
+        if (!char.IsWhiteSpace(s[0]) && !char.IsWhiteSpace(s[^1]) && !s.ContainsAny(_scribanChanges))
+            return input;
+
 
         // Pass 1:
         // - remove "{{" and "}}"

@@ -2,7 +2,9 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Globalization;
+using System.Numerics;
+using System.Text;
+using System.Runtime.InteropServices;
 
 namespace Soenneker.Extensions.String;
 
@@ -83,6 +85,9 @@ public static partial class StringExtension
     public static string ToLowerInvariantFast(this string str)
     {
         ReadOnlySpan<char> s = str;
+        if (s.Length >= 16 && Ascii.IsValid(s))
+            return ToLowerOrdinal(str);
+
         int i = 0;
 
         for (; i < s.Length; i++)
@@ -125,6 +130,9 @@ public static partial class StringExtension
     public static string ToUpperInvariantFast(this string str)
     {
         ReadOnlySpan<char> s = str;
+        if (s.Length >= 16 && Ascii.IsValid(s))
+            return ToUpperOrdinal(str);
+
         var i = 0;
         for (; i < s.Length; i++)
         {
@@ -174,22 +182,15 @@ public static partial class StringExtension
     [Pure]
     public static string ToLowerOrdinal(this string str)
     {
-        ReadOnlySpan<char> s = str;
-        int i = s.IndexOfAnyInRange('A', 'Z');
-        if (i < 0)
+        ReadOnlySpan<char> source = str;
+        int first = source.IndexOfAnyInRange('A', 'Z');
+        if (first < 0)
             return str;
 
-        return string.Create(s.Length, (str, i), static (dst, st) =>
+        return string.Create(source.Length, (str, first), static (destination, state) =>
         {
-            (string src, int start) = st;
-            ReadOnlySpan<char> ss = src;
-            ss[..start]
-                .CopyTo(dst);
-            for (int j = start; j < ss.Length; j++)
-            {
-                char c = ss[j];
-                dst[j] = (uint)(c - 'A') <= 'Z' - 'A' ? (char)(c + 32) : c;
-            }
+            state.str.AsSpan(0, state.first).CopyTo(destination);
+            ChangeOrdinalCase(state.str.AsSpan(state.first), destination[state.first..], false);
         });
     }
 
@@ -209,22 +210,42 @@ public static partial class StringExtension
     [Pure]
     public static string ToUpperOrdinal(this string str)
     {
-        ReadOnlySpan<char> s = str;
-        int i = s.IndexOfAnyInRange('a', 'z');
-        if (i < 0)
+        ReadOnlySpan<char> source = str;
+        int first = source.IndexOfAnyInRange('a', 'z');
+        if (first < 0)
             return str;
 
-        return string.Create(s.Length, (str, i), static (dst, st) =>
+        return string.Create(source.Length, (str, first), static (destination, state) =>
         {
-            (string src, int start) = st;
-            ReadOnlySpan<char> ss = src;
-            ss[..start]
-                .CopyTo(dst);
-            for (int j = start; j < ss.Length; j++)
-            {
-                char c = ss[j];
-                dst[j] = (uint)(c - 'a') <= 'z' - 'a' ? (char)(c - 32) : c;
-            }
+            state.str.AsSpan(0, state.first).CopyTo(destination);
+            ChangeOrdinalCase(state.str.AsSpan(state.first), destination[state.first..], true);
         });
     }
+
+    private static void ChangeOrdinalCase(ReadOnlySpan<char> source, Span<char> destination, bool upper)
+    {
+        int position = 0;
+        uint first = upper ? 'a' : 'A';
+        if (Vector.IsHardwareAccelerated && source.Length >= Vector<ushort>.Count)
+        {
+            ReadOnlySpan<ushort> input = MemoryMarshal.Cast<char, ushort>(source);
+            Span<ushort> output = MemoryMarshal.Cast<char, ushort>(destination);
+            var start = new Vector<ushort>((ushort)first);
+            var width = new Vector<ushort>(25);
+            var bit = new Vector<ushort>(32);
+            for (; position <= input.Length - Vector<ushort>.Count; position += Vector<ushort>.Count)
+            {
+                var chars = new Vector<ushort>(input[position..]);
+                Vector<ushort> mask = Vector.LessThanOrEqual(chars - start, width) & bit;
+                (chars ^ mask).CopyTo(output[position..]);
+            }
+        }
+
+        for (; position < source.Length; position++)
+        {
+            char c = source[position];
+            destination[position] = (uint)c - first <= 25 ? (char)(c ^ 32) : c;
+        }
+    }
+
 }

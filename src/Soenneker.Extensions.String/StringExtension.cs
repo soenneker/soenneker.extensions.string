@@ -27,25 +27,22 @@ public static partial class StringExtension
 
     private const int _largeStackAllocThreshold = 512;
 
+    // The complete char.IsWhiteSpace set; searched in one vectorized pass.
+    private static readonly SearchValues<char> _whiteSpaceSearchValues =
+        SearchValues.Create("\t\n\v\f\r \u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000");
+
     private static readonly SearchValues<char> _asciiWhiteSpaceSearchValues = SearchValues.Create(" \t\r\n\f\v");
+    private static readonly SearchValues<char> _asciiAlphaNumericSearchValues = SearchValues.Create("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789");
+    private static readonly SearchValues<char> _normalizedSlugSearchValues = SearchValues.Create("abcdefghijklmnopqrstuvwxyz0123456789-_");
+    private static readonly SearchValues<char> _slugLettersAndDigits = SearchValues.Create("abcdefghijklmnopqrstuvwxyz0123456789");
+    private static readonly SearchValues<string> _repeatedSlugSeparators = SearchValues.Create(["--", "-_", "_-", "__"], StringComparison.Ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int IndexOfWhiteSpaceFast(ReadOnlySpan<char> value)
     {
-        int firstAscii = value.IndexOfAny(_asciiWhiteSpaceSearchValues);
-        int scanLength = firstAscii < 0 ? value.Length : firstAscii;
-
-        if (scanLength >= 16 && Ascii.IsValid(value[..scanLength]))
-            return firstAscii;
-
-        for (var i = 0; i < scanLength; i++)
-        {
-            char c = value[i];
-            if (c > 127 && c.IsWhiteSpaceFast())
-                return i;
-        }
-
-        return firstAscii;
+        if (value.Length >= 512 && Ascii.IsValid(value))
+            return value.IndexOfAny(_asciiWhiteSpaceSearchValues);
+        return value.IndexOfAny(_whiteSpaceSearchValues);
     }
 
     /// <summary>
@@ -81,13 +78,13 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return false;
 
-        for (var i = 0; i < value.Length; i++)
-        {
-            if (!value[i]
-                    .IsLetterOrDigitFast())
-                return false;
-        }
+        int first = value.AsSpan().IndexOfAnyExcept(_asciiAlphaNumericSearchValues);
+        if (first < 0)
+            return true;
 
+        for (int i = first; i < value.Length; i++)
+            if (!value[i].IsLetterOrDigitFast())
+                return false;
         return true;
     }
 
@@ -105,15 +102,13 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> s = value.AsSpan();
 
-        int firstNonDigit = -1;
-        for (int i = 0; i < s.Length; i++)
+        int firstNonDigit = s.IndexOfAnyExceptInRange('0', '9');
+        if (firstNonDigit >= 0 && s[firstNonDigit].IsDigitFast())
         {
-            if (!s[i]
-                    .IsDigitFast())
-            {
-                firstNonDigit = i;
-                break;
-            }
+            // Non-ASCII decimal digits remain part of this API's contract.
+            while (++firstNonDigit < s.Length && s[firstNonDigit].IsDigitFast()) { }
+            if (firstNonDigit == s.Length)
+                return value;
         }
 
         if (firstNonDigit < 0)
@@ -552,6 +547,12 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return [];
 
+        if (!value.Contains(','))
+        {
+            string item = value.Trim();
+            return item.Length == 0 ? [] : [item];
+        }
+
         var list = new List<string>(value.AsSpan().Count(',') + 1);
         ReadOnlySpan<char> remaining = value.AsSpan();
 
@@ -584,6 +585,12 @@ public static partial class StringExtension
     {
         if (value.IsNullOrEmpty())
             return null;
+
+        if (!value.Contains(delimiter))
+        {
+            string item = value.Trim();
+            return item.Length == 0 ? null : [item];
+        }
 
         string[] result = value.AsSpan().SplitTrimmedNonEmpty(delimiter);
         return result.Length == 0 ? null : result;
@@ -661,7 +668,7 @@ public static partial class StringExtension
     [Pure]
     public static string Shuffle(this string value)
     {
-        if (value.IsNullOrEmpty())
+        if (value.IsNullOrEmpty() || value.Length == 1)
             return value;
 
         return string.Create(value.Length, value, static (destination, source) =>
@@ -694,7 +701,7 @@ public static partial class StringExtension
     [Pure]
     public static string SecureShuffle(this string value)
     {
-        if (value.IsNullOrEmpty())
+        if (value.IsNullOrEmpty() || value.Length == 1)
             return value;
 
         return string.Create(value.Length, value, static (destination, source) =>
@@ -840,130 +847,143 @@ public static partial class StringExtension
         if (value.IsNullOrEmpty())
             return value;
 
-        ReadOnlySpan<char> s = value.AsSpan();
-
-        Span<char> stack = s.Length <= 512 ? stackalloc char[s.Length] : default;
-        char[]? rented = null;
-        Span<char> dst = stack.IsEmpty ? (rented = ArrayPool<char>.Shared.Rent(s.Length)).AsSpan(0, s.Length) : stack;
-
-        var w = 0;
-
-        // 0 = not in sep run, 1 = underscore-only run, 2 = dash/whitespace run
-        var sepState = 0;
-
-        var changed = false;
-
-        for (var i = 0; i < s.Length; i++)
+        ReadOnlySpan<char> source = value;
+        if (source.Length >= 128)
         {
-            char orig = s[i];
-            char c = orig;
-
-            char lower = c.ToLowerInvariant();
-
-            if (lower != c)
-            {
-                c = lower;
-                changed = true;
-            }
-
-            // ASCII fast path
-            if ((uint)c <= 0x7Fu)
-            {
-                // [a-z0-9]
-                if ((uint)(c - 'a') <= 25u || (uint)(c - '0') <= 9u)
-                {
-                    if (sepState != 0)
-                    {
-                        if (w > 0)
-                        {
-                            dst[w++] = sepState == 1 ? '_' : '-';
-                            changed = true; // inserted normalized separator
-                        }
-
-                        sepState = 0;
-                    }
-
-                    dst[w++] = c;
-
-                    // If the original differed (case fold etc.), it's already marked.
-                    // If not, this implies no change for this char.
-                    continue;
-                }
-
-                // underscore => separator run (underscore-only run unless a dash/space appears later)
-                if (c == '_')
-                {
-                    if (sepState == 0)
-                        sepState = 1;
-
-                    // We are not copying '_' immediately, so output differs unless it gets emitted
-                    // exactly in same positions (we don't guarantee that), so mark changed.
-                    changed = true;
-                    continue;
-                }
-
-                // dash or ASCII whitespace => dash-run
-                if (c == '-' || c.IsWhiteSpaceFast())
-                {
-                    sepState = 2;
-                    changed = true;
-                    continue;
-                }
-
-                // other ASCII punctuation: skip
-                changed = true;
-                continue;
-            }
-
-            // Non-ASCII
-            if (char.IsLetterOrDigit(orig))
-            {
-                if (sepState != 0)
-                {
-                    if (w > 0)
-                    {
-                        dst[w++] = sepState == 1 ? '_' : '-';
-                        changed = true;
-                    }
-
-                    sepState = 0;
-                }
-
-                // For Unicode letters/digits, we already lowercased via ToLowerInvariant above
-                dst[w++] = c;
-
-                // If c != orig, changed would already be true
-                // But letter/digit kept as-is could still be identical; no action needed.
-                continue;
-            }
-
-            if (orig.IsWhiteSpaceFast())
-            {
-                sepState = 2;
-                changed = true;
-                continue;
-            }
-
-            // other non-ASCII punctuation/symbol: skip
-            changed = true;
+            if (!source.ContainsAnyExcept(_asciiAlphaNumericSearchValues))
+                return value.ToLowerOrdinal();
+            if (IsNormalizedSlug(source))
+                return value;
         }
 
-        // If output is identical, return original reference (no allocation)
-        if (!changed && w == s.Length)
+        char[]? rented = null;
+        Span<char> destination = source.Length <= _largeStackAllocThreshold
+            ? stackalloc char[source.Length]
+            : (rented = ArrayPool<char>.Shared.Rent(source.Length));
+        try
+        {
+            int written = WriteSlug(source, destination);
+            if (written == source.Length && destination[..written].SequenceEqual(source))
+                return value;
+            return new string(destination[..written]);
+        }
+        finally
         {
             if (rented is not null)
                 ArrayPool<char>.Shared.Return(rented);
+        }
+    }
 
-            return value;
+    private static int WriteSlug(ReadOnlySpan<char> source, Span<char> destination)
+    {
+        int written = 0;
+        int start = 0;
+        int end = source.Length;
+        if (source.Length >= 128)
+        {
+            int prefix = source.IndexOfAnyExcept(_slugLettersAndDigits);
+            if (prefix >= 16)
+            {
+                source[..prefix].CopyTo(destination);
+                start = written = prefix;
+            }
+            int last = source[start..].LastIndexOfAnyExcept(_slugLettersAndDigits);
+            int tailStart = start + last + 1;
+            if (source.Length - tailStart >= 128)
+                end = tailStart;
         }
 
-        string result = w == 0 ? string.Empty : new string(dst[..w]);
+        // 0: no separator, 1: underscores only, 2: dash or whitespace.
+        int separator = 0;
+        for (int i = start; i < end; i++)
+        {
+            char original = source[i];
+            char c = original.ToLowerInvariant();
+            if (c <= 127)
+            {
+                if ((uint)(c - 'a') <= 25 || (uint)(c - '0') <= 9)
+                {
+                    if (separator != 0)
+                    {
+                        if (written != 0)
+                            destination[written++] = separator == 1 ? '_' : '-';
+                        separator = 0;
+                    }
 
-        if (rented is not null)
-            ArrayPool<char>.Shared.Return(rented);
+                    destination[written++] = c;
+                }
+                else if (c == '_')
+                {
+                    if (separator == 0)
+                        separator = 1;
+                }
+                else if (c == '-' || c.IsWhiteSpaceFast())
+                {
+                    separator = 2;
+                }
+            }
+            else if (char.IsLetterOrDigit(original))
+            {
+                if (separator != 0)
+                {
+                    if (written != 0)
+                        destination[written++] = separator == 1 ? '_' : '-';
+                    separator = 0;
+                }
+                destination[written++] = c;
+            }
+            else if (original.IsWhiteSpaceFast())
+            {
+                separator = 2;
+            }
+        }
 
-        return result;
+        if (end < source.Length)
+        {
+            if (separator != 0 && written != 0)
+                destination[written++] = separator == 1 ? '_' : '-';
+            source[end..].CopyTo(destination[written..]);
+            written += source.Length - end;
+        }
+        return written;
     }
+
+    private static bool IsNormalizedSlug(ReadOnlySpan<char> value)
+    {
+        if (value.Length >= 32)
+        {
+            int first = value.IndexOfAnyExcept(_normalizedSlugSearchValues);
+            if (first >= 0 && value[first] <= 127)
+                return false;
+
+            if (first < 0)
+            {
+                if (value[0] is '-' or '_' || value[^1] is '-' or '_')
+                    return false;
+                return !value.ContainsAny(_repeatedSlugSeparators);
+            }
+        }
+
+        bool previousSeparator = true;
+        foreach (char c in value)
+        {
+            if (c is '-' or '_')
+            {
+                if (previousSeparator)
+                    return false;
+                previousSeparator = true;
+            }
+            else
+            {
+                if (!c.IsLetterOrDigitFast() || c.ToLowerInvariant() != c)
+                    return false;
+                previousSeparator = false;
+            }
+        }
+
+        return !previousSeparator;
+    }
+
 
     /// <summary>
     /// Ignores the case of the string being passed in. 
@@ -1033,7 +1053,7 @@ public static partial class StringExtension
 
         char[]? rentedChars = null;
         byte[]? rentedBytes = null;
-        int maxBytes = (input.Length + 3) / 4 * 3;
+        int maxBytes = (input.Length / 4 + (input.Length % 4 == 0 ? 0 : 1)) * 3;
         Span<byte> bytes = maxBytes <= _largeStackAllocThreshold
             ? stackalloc byte[maxBytes]
             : (rentedBytes = ArrayPool<byte>.Shared.Rent(maxBytes)).AsSpan(0, maxBytes);
@@ -1049,6 +1069,12 @@ public static partial class StringExtension
             int pad = input.Length & 3;
             if (pad == 1)
                 throw new FormatException("Invalid Base64URL length.");
+
+            // Decode ordinary unpadded Base64URL directly. Keep the normalization
+            // fallback for mixed alphabets, padding, and legacy whitespace behavior.
+            if (input.IndexOfAny('=', ' ', '\t') < 0 && input.IndexOfAny('\r', '\n') < 0 &&
+                Base64Url.DecodeFromChars(input, bytes, out _, out int urlWritten) == OperationStatus.Done)
+                return Encoding.UTF8.GetString(bytes[..urlWritten]);
 
             int extraPad = pad == 0 ? 0 : 4 - pad;
             int outCharsLen = input.Length + extraPad;
@@ -1130,6 +1156,8 @@ public static partial class StringExtension
 
         ReadOnlySpan<char> s = value.AsSpan();
         int colonCount = s.Count(':');
+        if (colonCount == 0)
+            return [value];
 
         var list = new List<string>(colonCount + 1);
 
@@ -1622,6 +1650,9 @@ public static partial class StringExtension
         {
             return false;
         }
+
+        if (!span.ContainsAnyExceptInRange('!', '~'))
+            return true;
 
         for (int i = 0; i < span.Length; i++)
         {
