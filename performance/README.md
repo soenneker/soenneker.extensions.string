@@ -1,5 +1,7 @@
 # Performance audit
 
+The later [ReplaceMatches benchmark](REPLACE-MATCHES.md) measures the new method's use of PooledStringBuilder against Regex.Replace and a span matcher with StringBuilder.
+
 The audit compares the original source revisions in [baseline.json](baseline.json) with the local changes. Baselines use a separate namespace and the same runtime. Exploration uses in-process timing, with additional isolated-process confirmation. `Baseline/` is generated and ignored. The builder source is needed only to compile the original span-join implementation; `PooledStringBuilder` is excluded from changes at the user's request.
 
 ## Reproduce
