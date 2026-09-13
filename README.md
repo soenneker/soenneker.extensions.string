@@ -111,6 +111,29 @@ Other focused transformations include:
 - `ToLowerOrdinal()` and `ToUpperOrdinal()` change ASCII letters only. The `*InvariantFast()` methods also handle non-ASCII invariant casing.
 - `Mask()` masks the entire value when it has six or fewer characters; longer values expose only their final three characters.
 
+## Computed regex replacements
+
+`ReplaceMatches()` passes each complete match to a span-based callback, once per match. It is useful for
+redaction, identifier expansion, and computed substitutions without allocating a `Match` object or a
+substring for the matched text.
+
+```csharp
+using System.Text.RegularExpressions;
+
+var numbers = new Regex(@"\b\d+\b");
+string doubled = "Retry in 5 seconds".ReplaceMatches(
+    numbers, static digits => (int.Parse(digits) * 2).ToString());
+// "Retry in 10 seconds"
+```
+
+Replacement strings are inserted literally and are not searched again. Returning null or an empty
+string removes a match. Empty matches and right-to-left expressions are supported; callbacks follow
+the regex's search order. No matches returns the original string. Null arguments throw.
+
+The method uses `PooledStringBuilder` with 256 characters of initial stack storage and grows into pooled
+storage as needed. The result length can depend on callback results without invoking the callback twice.
+Use `Regex.Replace()` with `MatchEvaluator` when you need capture groups.
+
 ## URL, file, and link helpers
 
 ```csharp

@@ -1,5 +1,7 @@
 # PooledStringBuilder follow-up
 
+This report covers the methods that existed during the audit. The later [ReplaceMatches addition](REPLACE-MATCHES.md) introduces a new use for the builder; it does not replace the implementations evaluated here.
+
 This follow-up evaluates whether the updated PooledStringBuilder belongs in `Soenneker.Extensions.String`. The string control is commit `99cbac4`, after the first performance audit. Builder source comes from `fa0f48c`; its production implementation is the optimization in `13789a7`, released as `4.0.31`. The builder repository's implementation is not modified here.
 
 ## Comparisons
@@ -47,7 +49,7 @@ These are steady-state microbenchmarks on one runtime and CPU, with warm pools. 
 
 ## Decision and retained change
 
-Do not add PooledStringBuilder as a production dependency. It can beat existing two-pass implementations on selected inputs, but direct span controls generally do better, and the builder alternatives regress other inputs. The builder implementation remains unchanged.
+None of the existing methods evaluated here justified introducing PooledStringBuilder. It can beat existing two-pass implementations on selected inputs, but direct span controls generally do better, and the builder alternatives regress other inputs. The builder implementation remains unchanged.
 
 Retain the one-pass **Scriban escaping** change using a direct stack/pooled span. The public no-change check stays outside the buffer-writing helper. Existing brace-pair removal, Unicode whitespace normalization, null/empty behavior and input-reference reuse are preserved. In the final separate-process comparison, changed inputs took 15–48% less time, with the same steady-state managed allocations.
 
