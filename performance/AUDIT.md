@@ -1,5 +1,7 @@
 # String and dependency performance audit — 2026-09-12
 
+The later [PooledStringBuilder follow-up](BUILDER-AUDIT.md) compares the updated builder against this audit's resulting string implementations and records an additional retained change.
+
 ## Outcome
 
 Changes are implemented in four repositories: `soenneker.extensions.string`, `soenneker.extensions.spans.readonly.chars`, `soenneker.extensions.spans.readonly.bytes`, and `soenneker.utils.random`. Public signatures and deterministic output behavior are preserved. Weighted random selection uses a different sampling algorithm, preserving the documented weighting contract rather than a particular random sequence.

@@ -8,6 +8,7 @@ Use .NET 10 and Python 3. Place the repositories from `baseline.json` beside `so
 
 ```powershell
 python prepare.py
+python prepare-builder.py
 $auditTargets = (Resolve-Path ../../Audit.Dependencies.targets).Path
 dotnet run --project Performance.csproj -c Release -p:AuditLocalDependencies=true "-p:DirectoryBuildTargetsPath=$auditTargets" -- --verify
 dotnet run --project Performance.csproj -c Release --no-build -- --filter '*' --inProcess --iterationTime 100 --warmupCount 3 --iterationCount 5 --launchCount 1 --artifacts results/reproduction
@@ -40,6 +41,8 @@ try {
 ```
 
 The suite includes original implementations as controls, including some candidates that were ultimately rejected. Do not interpret every `New` row as a changed method. Use [AUDIT.md](AUDIT.md) to identify retained changes and the applicable measurement run.
+
+The later [PooledStringBuilder comparison](BUILDER-AUDIT.md) uses its updated stack-storage API. That suite requires builder source `fa0f48c` (production optimization `13789a7`, package 4.0.31), and `prepare-builder.py` generates the post-audit string baseline. Its `BuilderBenchmarks` results are separate from the original audit's accepted results.
 
 ## Methodology and limits
 

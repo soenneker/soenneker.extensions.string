@@ -73,111 +73,27 @@ public static partial class StringExtension
         if (!char.IsWhiteSpace(s[0]) && !char.IsWhiteSpace(s[^1]) && !s.ContainsAny(_scribanChanges))
             return input;
 
+        return EscapeScribanCore(input);
+    }
 
-        // Pass 1:
-        // - remove "{{" and "}}"
-        // - map chars
-        // - trim leading/trailing whitespace after mapping
-        // - preserve internal whitespace exactly
-        var outLen = 0;
-        var i = 0;
-        var seenNonWs = false;
-        var pendingWs = 0;
-        var changed = false;
+    private static string EscapeScribanCore(string input)
+    {
+        ReadOnlySpan<char> source = input;
+        char[]? rented = null;
+        Span<char> destination = source.Length <= _largeStackAllocThreshold
+            ? stackalloc char[source.Length]
+            : (rented = ArrayPool<char>.Shared.Rent(source.Length));
 
-        while (i < s.Length)
+        try
         {
-            char c = s[i];
-
-            if (c == '{' && i + 1 < s.Length && s[i + 1] == '{')
+            int pendingWhitespace = 0;
+            int written = 0;
+            for (int i = 0; i < source.Length; i++)
             {
-                changed = true;
-                i += 2;
-                continue;
-            }
-
-            if (c == '}' && i + 1 < s.Length && s[i + 1] == '}')
-            {
-                changed = true;
-                i += 2;
-                continue;
-            }
-
-            char mapped = c switch
-            {
-                '"' => '\'',
-                '\\' => '/',
-                '\r' => ' ',
-                '\n' => ' ',
-                _ => c
-            };
-
-            bool isWs = char.IsWhiteSpace(mapped);
-
-            if (mapped != c || isWs && mapped != ' ')
-                changed = true;
-
-            if (!seenNonWs)
-            {
-                if (isWs)
+                char c = source[i];
+                if ((c == '{' || c == '}') && i + 1 < source.Length && source[i + 1] == c)
                 {
-                    changed = true;
                     i++;
-                    continue;
-                }
-
-                seenNonWs = true;
-                outLen++;
-                i++;
-                continue;
-            }
-
-            if (isWs)
-            {
-                pendingWs++;
-            }
-            else
-            {
-                outLen += pendingWs + 1;
-                pendingWs = 0;
-            }
-
-            i++;
-        }
-
-        if (outLen == 0)
-            return "";
-
-        if (pendingWs != 0)
-            changed = true;
-
-        if (!changed && outLen == input.Length)
-            return input;
-
-        // Pass 2:
-        // Same state machine as pass 1, but write directly.
-        // No lookahead. No rescanning.
-        return string.Create(outLen, input, static (dst, src) =>
-        {
-            ReadOnlySpan<char> s = src;
-            var i = 0;
-            var w = 0;
-            var seenNonWs = false;
-            var pendingWs = 0;
-
-            while (i < s.Length)
-            {
-                char c = s[i];
-
-                if (c == '{' && i + 1 < s.Length && s[i + 1] == '{')
-                {
-                    i += 2;
-                    continue;
-                }
-
-                if (c == '}' && i + 1 < s.Length && s[i + 1] == '}')
-                {
-                    i += 2;
                     continue;
                 }
 
@@ -185,43 +101,34 @@ public static partial class StringExtension
                 {
                     '"' => '\'',
                     '\\' => '/',
-                    '\r' => ' ',
-                    '\n' => ' ',
+                    '\r' or '\n' => ' ',
                     _ => c
                 };
 
-                bool isWs = char.IsWhiteSpace(mapped);
-
-                if (!seenNonWs)
+                // Preserve the existing normalization of internal Unicode whitespace to spaces.
+                if (char.IsWhiteSpace(mapped))
                 {
-                    if (isWs)
-                    {
-                        i++;
-                        continue;
-                    }
-
-                    seenNonWs = true;
-                    dst[w++] = mapped;
-                    i++;
+                    if (written != 0)
+                        pendingWhitespace++;
                     continue;
                 }
 
-                if (isWs)
+                if (pendingWhitespace != 0)
                 {
-                    pendingWs++;
-                    i++;
-                    continue;
+                    destination.Slice(written, pendingWhitespace).Fill(' ');
+                    written += pendingWhitespace;
+                    pendingWhitespace = 0;
                 }
 
-                while (pendingWs > 0)
-                {
-                    dst[w++] = ' ';
-                    pendingWs--;
-                }
-
-                dst[w++] = mapped;
-                i++;
+                destination[written++] = mapped;
             }
-        });
+
+            return destination[..written].SequenceEqual(source) ? input : new string(destination[..written]);
+        }
+        finally
+        {
+            if (rented is not null)
+                ArrayPool<char>.Shared.Return(rented);
+        }
     }
 }
