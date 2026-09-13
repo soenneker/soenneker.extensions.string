@@ -4,30 +4,31 @@ The audit compares the original source revisions in [baseline.json](baseline.jso
 
 ## Reproduce
 
-Use .NET 10 and Python 3. Place the repositories from `baseline.json` beside `soenneker.extensions.string`, with the recorded commits available in their Git histories. Run from this directory:
+Use .NET 10 and Python 3. The runner locates the existing categorized repositories under `C:\git\Soenneker` (for example `Extensions`, `Utils`, and `Hashing`); it also supports sibling checkouts. The recorded commits in `baseline.json` must be available in their Git histories. Run from the existing string repository's `performance` directory:
 
 ```powershell
 python prepare.py
 python prepare-builder.py
-$auditTargets = (Resolve-Path ../../Audit.Dependencies.targets).Path
+$auditTargets = (Resolve-Path ./Audit.Dependencies.targets).Path
 dotnet run --project Performance.csproj -c Release -p:AuditLocalDependencies=true "-p:DirectoryBuildTargetsPath=$auditTargets" -- --verify
 dotnet run --project Performance.csproj -c Release --no-build -- --filter '*' --inProcess --iterationTime 100 --warmupCount 3 --iterationCount 5 --launchCount 1 --artifacts results/reproduction
 ```
 
-The supplied workspace already imports the opt-in dependency targets from its root `Directory.Build.targets`; there, `-p:AuditLocalDependencies=true` is sufficient. Ordinary builds continue using the projects' published NuGet references. Do not publish with the audit property enabled.
+`prepare.py` generates ignored `Audit.Projects.props` and `Audit.Dependencies.targets` inside this directory, using absolute paths to the existing projects. It does not write shared build configuration above the repository. Ordinary builds continue using published NuGet references. Do not publish with the audit property enabled.
 
 For isolated benchmark processes, pass the dependency property through the environment so BenchmarkDotNet's generated project builds use the same source graph:
 
 ```powershell
 $env:AuditLocalDependencies = 'true'
+$env:DirectoryBuildTargetsPath = (Resolve-Path ./Audit.Dependencies.targets).Path
 try {
     dotnet run --project Performance.csproj -c Release --no-build -- --filter '*Slug*' '*Trimmed*' '*LoggingBenchmarks*' '*WeightedBenchmarks*' --iterationTime 100 --warmupCount 3 --iterationCount 5 --launchCount 1 --artifacts results/isolated-reproduction
 } finally {
-    Remove-Item Env:\AuditLocalDependencies
+    Remove-Item Env:\AuditLocalDependencies,Env:\DirectoryBuildTargetsPath
 }
 ```
 
-This isolated command assumes the workspace root imports `Audit.Dependencies.targets` from `Directory.Build.targets`, as in the supplied workspace.
+Both environment properties propagate to BenchmarkDotNet's generated processes and dependency builds. The generated absolute paths remain local and are not committed.
 
 To check the scalar fallback:
 

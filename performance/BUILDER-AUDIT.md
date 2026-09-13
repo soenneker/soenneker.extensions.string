@@ -17,25 +17,27 @@ The source scan covered every string-producing method. Variable-output candidate
 
 ## Reproduction
 
-Use the sibling repository layout and .NET 10 setup in [README.md](README.md). Prepare both comparison generations:
+Use the existing repository layout and .NET 10 setup in [README.md](README.md). Both the categorized `C:\git\Soenneker` layout and sibling checkouts are supported. Prepare both comparison generations:
 
 ```powershell
 python prepare.py
 python prepare-builder.py
-dotnet run --project Performance.csproj -c Release -p:AuditLocalDependencies=true -- --verify-builder
+$auditTargets = (Resolve-Path ./Audit.Dependencies.targets).Path
+dotnet run --project Performance.csproj -c Release -p:AuditLocalDependencies=true "-p:DirectoryBuildTargetsPath=$auditTargets" -- --verify-builder
 ```
 
 The original exploration used seven operations (all except `Newlines`), lengths 32, 512 and 4096, and mixed text. It used the in-process toolchain. For the separate-process confirmation:
 
 ```powershell
 $env:AuditLocalDependencies = 'true'
+$env:DirectoryBuildTargetsPath = (Resolve-Path ./Audit.Dependencies.targets).Path
 $env:BuilderOperations = 'Digits,Whitespace,Scriban,Tel,Newlines'
 $env:BuilderLengths = '32,4096'
 $env:BuilderShapes = 'Mixed,Clean,Late,Unicode'
 try {
     dotnet run --project Performance.csproj -c Release --no-build -- --filter '*BuilderBenchmarks*' --iterationTime 100 --warmupCount 3 --iterationCount 5 --launchCount 1 --artifacts results/builder-confirmation
 } finally {
-    Remove-Item Env:\AuditLocalDependencies,Env:\BuilderOperations,Env:\BuilderLengths,Env:\BuilderShapes
+    Remove-Item Env:\AuditLocalDependencies,Env:\DirectoryBuildTargetsPath,Env:\BuilderOperations,Env:\BuilderLengths,Env:\BuilderShapes
 }
 ```
 
@@ -78,7 +80,7 @@ The stored runs contain 376 timings: 84 initial in-process comparisons, 160 sepa
 `BuilderTailBenchmarks` copies the unchanged prefix directly into the final string and buffers only the remainder. `BuilderGrowthBenchmarks` starts with at most 512 stack characters and grows only as output is appended; its sparse and entirely removed inputs extend to 65,536 characters.
 
 ```powershell
-# Set AuditLocalDependencies=true in the environment as above.
+# Set AuditLocalDependencies and DirectoryBuildTargetsPath in the environment as above.
 dotnet run --project Performance.csproj -c Release --no-build -- --filter '*BuilderTailBenchmarks*' --iterationTime 100 --warmupCount 3 --iterationCount 5 --launchCount 1 --artifacts results/builder-tail
 dotnet run --project Performance.csproj -c Release --no-build -- --filter '*BuilderGrowthBenchmarks*' --iterationTime 100 --warmupCount 3 --iterationCount 5 --launchCount 1 --artifacts results/builder-growth
 ```

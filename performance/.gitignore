@@ -1,5 +1,7 @@
 Baseline/
 BuilderSnapshot/
+Audit.Dependencies.targets
+Audit.Projects.props
 bin/
 obj/
 BenchmarkDotNet.Artifacts/

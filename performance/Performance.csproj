@@ -9,13 +9,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-    <ProjectReference Include="../../soenneker.culture.english.us/src/Soenneker.Culture.English.US/Soenneker.Culture.English.US.csproj" />
-    <ProjectReference Include="../../soenneker.extensions.char/src/Soenneker.Extensions.Char/Soenneker.Extensions.Char.csproj" />
-    <ProjectReference Include="../../soenneker.extensions.spans.readonly.bytes/src/Soenneker.Extensions.Spans.Readonly.Bytes/Soenneker.Extensions.Spans.Readonly.Bytes.csproj" />
-    <ProjectReference Include="../../soenneker.extensions.spans.readonly.chars/src/Soenneker.Extensions.Spans.Readonly.Chars/Soenneker.Extensions.Spans.Readonly.Chars.csproj" />
-    <ProjectReference Include="../../soenneker.extensions.string/src/Soenneker.Extensions.String/Soenneker.Extensions.String.csproj" />
-    <ProjectReference Include="../../soenneker.hashing.sha256/src/Soenneker.Hashing.Sha256/Soenneker.Hashing.Sha256.csproj" />
-    <ProjectReference Include="../../soenneker.utils.pooledstringbuilders/src/Soenneker.Utils.PooledStringBuilders/Soenneker.Utils.PooledStringBuilders.csproj" />
-    <ProjectReference Include="../../soenneker.utils.random/src/Soenneker.Utils.Random/Soenneker.Utils.Random.csproj" />
   </ItemGroup>
+  <Import Project="Audit.Projects.props" Condition="Exists('Audit.Projects.props')" />
+  <Target Name="RequireAuditPreparation" BeforeTargets="PrepareForBuild" Condition="!Exists('Audit.Projects.props')">
+    <Error Text="Run python prepare.py and python prepare-builder.py from performance/ to locate the existing checkouts and generate comparison sources." />
+  </Target>
 </Project>
