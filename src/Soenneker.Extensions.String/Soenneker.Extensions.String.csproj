@@ -51,6 +51,6 @@
         <PackageReference Include="Soenneker.Culture.English.US" Version="4.0.52" />
         <PackageReference Include="Soenneker.Extensions.Spans.Readonly.Chars" Version="4.0.124" />
         <PackageReference Include="Soenneker.Utils.Random" Version="4.0.134" />
-        <PackageReference Include="Soenneker.Utils.PooledStringBuilders" Version="4.0.32" />
+        <PackageReference Include="Soenneker.Utils.PooledStringBuilders" Version="4.0.33" />
     </ItemGroup>
 </Project>
