@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using Soenneker.Benchmarking.Extensions.Summary;
@@ -13,7 +12,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask IsNullOrEmpty()
+    public async System.Threading.Tasks.ValueTask IsNullOrEmpty()
     {
         Summary summary = BenchmarkRunner.Run<IsNullOrEmptyBenchmark>(DefaultConf);
 
@@ -21,7 +20,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask ToUpperInvariant()
+    public async System.Threading.Tasks.ValueTask ToUpperInvariant()
     {
         Summary summary = BenchmarkRunner.Run<ToUpperInvariantBenchmark>(DefaultConf);
 
@@ -29,7 +28,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask ToInt()
+    public async System.Threading.Tasks.ValueTask ToInt()
     {
         Summary summary = BenchmarkRunner.Run<ToIntBenchmark>(DefaultConf);
 
@@ -37,7 +36,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask RemoveWhiteSpace()
+    public async System.Threading.Tasks.ValueTask RemoveWhiteSpace()
     {
         Summary summary = BenchmarkRunner.Run<RemoveWhiteSpaceBenchmark>(DefaultConf);
 
@@ -45,7 +44,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask EqualsAny()
+    public async System.Threading.Tasks.ValueTask EqualsAny()
     {
         Summary summary = BenchmarkRunner.Run<EqualsAnyBenchmark>(DefaultConf);
 
@@ -53,7 +52,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask ToBytes()
+    public async System.Threading.Tasks.ValueTask ToBytes()
     {
         Summary summary = BenchmarkRunner.Run<ToBytesBenchmark>(DefaultConf);
 
@@ -61,7 +60,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
   //  [Test]
-    public async ValueTask ToBytesFromBase64()
+    public async System.Threading.Tasks.ValueTask ToBytesFromBase64()
     {
         Summary summary = BenchmarkRunner.Run<ToBytesFromBase64Benchmark>(DefaultConf);
 
@@ -69,7 +68,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask ToDashesFromWhiteSpace()
+    public async System.Threading.Tasks.ValueTask ToDashesFromWhiteSpace()
     {
         Summary summary = BenchmarkRunner.Run<ToDashesFromWhiteSpaceBenchmark>(DefaultConf);
 
@@ -77,7 +76,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask ToSplitId()
+    public async System.Threading.Tasks.ValueTask ToSplitId()
     {
         Summary summary = BenchmarkRunner.Run<ToSplitIdBenchmark>(DefaultConf);
 
@@ -85,7 +84,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask ToBool()
+    public async System.Threading.Tasks.ValueTask ToBool()
     {
         Summary summary = BenchmarkRunner.Run<ToBoolBenchmark>(DefaultConf);
 
@@ -93,7 +92,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
 //    [Test]
-    public async ValueTask AddPartitionKey()
+    public async System.Threading.Tasks.ValueTask AddPartitionKey()
     {
         Summary summary = BenchmarkRunner.Run<AddPartitionKeyBenchmark>(DefaultConf);
 
@@ -101,7 +100,7 @@ public class StringExtensionRunner : BenchmarkTest
     }
 
    // [Test]
-    public async ValueTask AddDocumentId()
+    public async System.Threading.Tasks.ValueTask AddDocumentId()
     {
         Summary summary = BenchmarkRunner.Run<AddDocumentIdBenchmark>(DefaultConf);
 
