@@ -48,9 +48,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Culture.English.US" Version="4.0.62" />
-        <PackageReference Include="Soenneker.Extensions.Spans.Readonly.Chars" Version="4.0.148" />
-        <PackageReference Include="Soenneker.Utils.Random" Version="4.0.146" />
-        <PackageReference Include="Soenneker.Utils.PooledStringBuilders" Version="4.0.43" />
+        <PackageReference Include="Soenneker.Culture.English.US" Version="11.0.63" />
+        <PackageReference Include="Soenneker.Extensions.Spans.Readonly.Chars" Version="11.0.149" />
+        <PackageReference Include="Soenneker.Utils.Random" Version="11.0.147" />
+        <PackageReference Include="Soenneker.Utils.PooledStringBuilders" Version="11.0.44" />
     </ItemGroup>
 </Project>
