@@ -25,8 +25,9 @@ public class PerformanceRegressionTests
             string input = string.Concat(Enumerable.Range(0, length).Select(i => "aZ09éÉ\ud800\udc00"[i % 8]));
             string lower = string.Concat(input.Select(c => c is >= 'A' and <= 'Z' ? (char)(c + 32) : c));
             string upper = string.Concat(input.Select(c => c is >= 'a' and <= 'z' ? (char)(c - 32) : c));
-            input.ToLowerOrdinal().Should().Be(lower);
-            input.ToUpperOrdinal().Should().Be(upper);
+            // Bind to this library rather than the ordinal-casing polyfill imported by TUnit.
+            StringExtension.ToLowerOrdinal(input).Should().Be(lower);
+            StringExtension.ToUpperOrdinal(input).Should().Be(upper);
         }
     }
 
@@ -66,7 +67,8 @@ public class PerformanceRegressionTests
     }
 
     [Test]
-    [Arguments("-+", "\ufffd")]
+    [Arguments("-+8=", "\ufffd\ufffd")]
+    [Arguments("-+8", "\ufffd\ufffd")]
     [Arguments("SGVsbG8", "Hello")]
     [Arguments(" SGVsbG8=\r\n", "Hello")]
     public void Base64_retains_mixed_alphabet_and_whitespace_support(string input, string expected)
